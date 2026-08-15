@@ -351,70 +351,86 @@ window.importFromExcel = function(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const data = new Uint8Array(e.target.result);
-    // cellDates: true converte le date native di Excel mantenendo l'anno reale (2025/2026)
+    // cellDates: true legge le date native direttamente in oggetti Date JavaScript
     const workbook = XLSX.read(data, { type: 'array', cellDates: true });
 
     let importedCount = 0;
 
     workbook.SheetNames.forEach(sheetName => {
+      // Processa solo i fogli mensili numerati (1, 2, ..., 12) ed ignora i fogli di servizio
+      if (isNaN(sheetName)) return;
+
       const worksheet = workbook.Sheets[sheetName];
       if (!worksheet['!ref']) return;
 
       const range = XLSX.utils.decode_range(worksheet['!ref']);
-      
-      // Mappa delle date attiva solo per il blocco di righe corrente
-      let cellToDateMap = {};
+
+      // 1. Trova tutte le celle del calendario principale che contengono una data
+      let dateLocations = [];
 
       for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = range.s.c; C <= range.e.c; ++C) {
+          // Ignora le prime righe laterali per evitare il mini-calendario nell'angolo in alto a destra
+          if (R < 8 && C > 9) continue;
+
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
           const cell = worksheet[cellAddress];
 
-          if (!cell || cell.v === undefined || cell.v === null) continue;
-
-          // Se la cella contiene un oggetto Date valido (con anno 2025 o 2026)
-          if (cell.v instanceof Date) {
+          if (cell && cell.v instanceof Date) {
             const d = cell.v;
-            // Normalizzazione in UTC per evitare sfasamenti di fuso orario
+            // Estrazione esatta della data in formato ISO YYYY-MM-DD
             const year = d.getUTCFullYear();
             const month = String(d.getUTCMonth() + 1).padStart(2, '0');
             const day = String(d.getUTCDate()).padStart(2, '0');
             const dateKey = `${year}-${month}-${day}`;
 
-            // Associa la data specifica alle righe sottostanti dello stesso blocco
-            for (let offset = 1; offset <= 4; offset++) {
-              cellToDateMap[`${R + offset}_${C}`] = dateKey;
-            }
-          } else {
-            const val = String(cell.v).trim();
-            const lowerVal = val.toLowerCase();
-            const dateKey = cellToDateMap[`${R}_${C}`];
-
-            if (dateKey) {
-              if (lowerVal === 'con me') {
-                overrides[dateKey] = 'papa';
-                importedCount++;
-              } else if (lowerVal === 'con mamma') {
-                overrides[dateKey] = 'mamma';
-                importedCount++;
-              } else if (val.length > 0 && !['l','m','g','v','s','d'].includes(lowerVal)) {
-                notes[dateKey] = { text: val, category: 'generico' };
-              }
-            }
+            dateLocations.push({ r: R, c: C, dateKey: dateKey });
           }
         }
       }
+
+      // 2. Per ciascuna data trovata, analizza le righe sottostanti nella stessa colonna
+      dateLocations.forEach(loc => {
+        // Cerca fino a 5 righe sotto la cella con la data
+        for (let offset = 1; offset <= 5; offset++) {
+          const targetRow = loc.r + offset;
+          const targetAddress = XLSX.utils.encode_cell({ r: targetRow, c: loc.c });
+          const targetCell = worksheet[targetAddress];
+
+          if (!targetCell || targetCell.v === undefined || targetCell.v === null) continue;
+
+          // Se incontra un'altra data, interrompe la ricerca per quel giorno
+          if (targetCell.v instanceof Date) break;
+
+          const valStr = String(targetCell.v).trim();
+          const lowerVal = valStr.toLowerCase();
+
+          // Registra l'assegnazione
+          if (lowerVal === 'con me') {
+            overrides[loc.dateKey] = 'papa';
+            importedCount++;
+          } else if (lowerVal === 'con mamma') {
+            overrides[loc.dateKey] = 'mamma';
+            importedCount++;
+          } 
+          // Registra note ed eventi speciali (es. "ritiro", "cambio lei", "psicologa", "operazione")
+          else if (valStr.length > 0 && !['l','m','g','v','s','d','note'].includes(lowerVal)) {
+            notes[loc.dateKey] = { text: valStr, category: 'generico' };
+          }
+        }
+      });
     });
 
+    // Salva su Firebase/LocalStorage e aggiorna la grafica del calendario
     if (typeof saveDataToFirestore === 'function') {
       saveDataToFirestore();
     }
-    
+
     if (typeof renderCalendar === 'function') {
       renderCalendar();
     }
 
-    alert(`Importazione completata con successo! Aggiornati ${importedCount} giorni per la stagione 2025/2026.`);
+    alert(`Importazione riuscita! Aggiornati ${importedCount} giorni e relative note dal file Excel.`);
   };
 
   reader.readAsArrayBuffer(file);
