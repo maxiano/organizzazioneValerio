@@ -37,6 +37,10 @@
   </div>
 
   <div class="action-buttons">
+    <label class="btn-primary" style="cursor: pointer; background-color: #059669; display: inline-flex; align-items: center; gap: 6px;">
+  📂 Carica File Excel
+  <input type="file" id="excelInput" accept=".xlsx, .xls" onchange="importFromExcel(event)" style="display: none;">
+</labe
     <button class="btn-primary" onclick="window.print()">🖨️ Stampa / PDF</button>
     <button class="btn-excel" onclick="exportToExcel()">📊 Esporta Excel</button>
     <button class="btn-reset" onclick="resetOverrides()">🔄 Ripristina Standard</button>
