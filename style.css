@@ -201,6 +201,95 @@ button.btn-delete { background: #ef4444; color: #ffffff; border-color: #ef4444; 
 .modal-content input, .modal-content select { width: 100%; box-sizing: border-box; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 
+/* Contenitore dei pulsanti d'azione */
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+/* Stile base uniforme per tutti i pulsanti */
+.action-buttons .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  user-select: none;
+}
+
+/* Nasconde l'input file mantenendolo accessibile */
+.action-buttons .btn input[type="file"] {
+  display: none;
+}
+
+.action-buttons .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.12);
+}
+
+.action-buttons .btn:active {
+  transform: translateY(0);
+}
+
+/* Colori specifici per azione */
+.btn-import {
+  background-color: #059669;
+  color: #ffffff;
+}
+.btn-import:hover {
+  background-color: #047857;
+}
+
+.btn-print {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+.btn-print:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-export {
+  background-color: #10b981;
+  color: #ffffff;
+}
+.btn-export:hover {
+  background-color: #059669;
+}
+
+.btn-reset {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+.btn-reset:hover {
+  background-color: #dc2626;
+}
+
+/* Icona stilizzata */
+.btn-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Nasconde le azioni durante la stampa fisica/PDF */
+@media print {
+  .action-buttons {
+    display: none !important;
+  }
+}
+
 /* REGOLE STAMPA */
 @media print {
   body { background: #fff !important; color: #000 !important; }
