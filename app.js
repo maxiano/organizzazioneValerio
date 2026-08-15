@@ -2,14 +2,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "IL_TUO_API_KEY",
-  authDomain: "IL_TUO_PROJECT_ID.firebaseapp.com",
-  projectId: "IL_TUO_PROJECT_ID",
-  storageBucket: "IL_TUO_PROJECT_ID.appspot.com",
-  messagingSenderId: "IL_TUO_SENDER_ID",
-  appId: "IL_TUO_APP_ID"
+  apiKey: "AIzaSyAGEPZjO0DnXAR9wJpOqfui5hYgJAYcE-k",
+  authDomain: "gestione-valerio.firebaseapp.com",
+  projectId: "gestione-valerio",
+  storageBucket: "gestione-valerio.firebasestorage.app",
+  messagingSenderId: "596812330710",
+  appId: "1:596812330710:web:03ad86e55032728cd07b77",
+  measurementId: "G-36RKDPZZ3T"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const docRef = doc(db, "turni_valerio", "overrides");
@@ -25,19 +25,21 @@ const startDateA = new Date(2026, 8, 7); // Lunedì 7 Settembre 2026
 // Inizializzazione Tema Scuro
 if (localStorage.getItem('theme') === 'dark') {
   document.documentElement.setAttribute('data-theme', 'dark');
-  document.getElementById('themeToggleBtn').textContent = '☀️ Chiaro';
+  const themeBtn = document.getElementById('themeToggleBtn');
+  if (themeBtn) themeBtn.textContent = '☀️ Chiaro';
 }
 
 window.toggleDarkMode = function() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const themeBtn = document.getElementById('themeToggleBtn');
   if (isDark) {
     document.documentElement.removeAttribute('data-theme');
     localStorage.setItem('theme', 'light');
-    document.getElementById('themeToggleBtn').textContent = '🌙 Scuro';
+    if (themeBtn) themeBtn.textContent = '🌙 Scuro';
   } else {
     document.documentElement.setAttribute('data-theme', 'dark');
     localStorage.setItem('theme', 'dark');
-    document.getElementById('themeToggleBtn').textContent = '☀️ Chiaro';
+    if (themeBtn) themeBtn.textContent = '☀️ Chiaro';
   }
 };
 
@@ -109,10 +111,11 @@ window.resetOverrides = function() {
   }
 };
 
-/* --- POPOLAMENTO MENU SELECT MESE / ANNO --- */
 function setupDateSelectors() {
   const monthSelect = document.getElementById('monthSelect');
   const yearSelect = document.getElementById('yearSelect');
+
+  if (!monthSelect || !yearSelect) return;
 
   monthSelect.innerHTML = '';
   const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
@@ -147,7 +150,6 @@ window.changeMonth = function(delta) {
   render();
 };
 
-/* --- VISTA LISTA / GRIGLIA --- */
 window.switchView = function(view) {
   currentView = view;
   document.getElementById('btnViewGrid').classList.toggle('active', view === 'grid');
@@ -158,7 +160,6 @@ window.switchView = function(view) {
   render();
 };
 
-/* --- MODALE NOTE --- */
 window.openNoteModal = function(dateKey, event) {
   event.stopPropagation();
   activeDateKeyForNote = dateKey;
@@ -216,6 +217,7 @@ function render() {
 
 function renderGrid() {
   const grid = document.getElementById('calendarGrid');
+  if (!grid) return;
   grid.innerHTML = '';
 
   const year = currentDate.getFullYear();
@@ -286,6 +288,7 @@ function renderGrid() {
 
 function renderList() {
   const list = document.getElementById('calendarList');
+  if (!list) return;
   list.innerHTML = '';
 
   const year = currentDate.getFullYear();
@@ -341,7 +344,6 @@ function renderList() {
   }
 }
 
-/* --- ESPORTAZIONE EXCEL --- */
 window.exportToExcel = function() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
