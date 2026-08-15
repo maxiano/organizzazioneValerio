@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calendario Turni Valerio</title>
   
+  <!-- Configurazione PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  
+  <!-- Supporto iOS/Safari -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Turni Valerio">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
   <!-- Foglio di Stile Esterno -->
   <link rel="stylesheet" href="style.css">
   
@@ -34,6 +44,17 @@
   </div>
 
   <div class="grid" id="calendarGrid"></div>
+
+  <!-- Registrazione Service Worker per PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('Service Worker registrato con successo:', reg.scope))
+          .catch((err) => console.error('Errore registrazione Service Worker:', err));
+      });
+    }
+  </script>
 
   <!-- Logica JavaScript Esterna (Modulo ES6) -->
   <script type="module" src="app.js"></script>
