@@ -351,26 +351,26 @@ window.importFromExcel = function(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const data = new Uint8Array(e.target.result);
-    // cellDates: true legge le date native direttamente in oggetti Date JavaScript
     const workbook = XLSX.read(data, { type: 'array', cellDates: true });
 
     let importedCount = 0;
+    let importedNotesCount = 0;
 
     workbook.SheetNames.forEach(sheetName => {
-      // Processa solo i fogli mensili numerati (1, 2, ..., 12) ed ignora i fogli di servizio
-      if (isNaN(sheetName)) return;
+      // Processa solo i fogli mensili numerati (1..12)
+      if (isNaN(parseInt(sheetName))) return;
 
       const worksheet = workbook.Sheets[sheetName];
       if (!worksheet['!ref']) return;
 
       const range = XLSX.utils.decode_range(worksheet['!ref']);
 
-      // 1. Trova tutte le celle del calendario principale che contengono una data
+      // 1. Mappatura delle celle della griglia principale
       let dateLocations = [];
 
       for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = range.s.c; C <= range.e.c; ++C) {
-          // Ignora le prime righe laterali per evitare il mini-calendario nell'angolo in alto a destra
+          // Ignora il riquadro riassuntivo/mini-calendario laterale
           if (R < 8 && C > 9) continue;
 
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
@@ -378,7 +378,7 @@ window.importFromExcel = function(event) {
 
           if (cell && cell.v instanceof Date) {
             const d = cell.v;
-            // Estrazione esatta della data in formato ISO YYYY-MM-DD
+            // Normalizzazione data UTC per prevenire sfasamenti di fuso orario
             const year = d.getUTCFullYear();
             const month = String(d.getUTCMonth() + 1).padStart(2, '0');
             const day = String(d.getUTCDate()).padStart(2, '0');
@@ -389,48 +389,61 @@ window.importFromExcel = function(event) {
         }
       }
 
-      // 2. Per ciascuna data trovata, analizza le righe sottostanti nella stessa colonna
+      // 2. Scansione del blocco del giorno (compresa la colonna adiacente dovuta alle celle unite)
       dateLocations.forEach(loc => {
-        // Cerca fino a 5 righe sotto la cella con la data
+        let noteCollector = [];
+
         for (let offset = 1; offset <= 5; offset++) {
           const targetRow = loc.r + offset;
-          const targetAddress = XLSX.utils.encode_cell({ r: targetRow, c: loc.c });
-          const targetCell = worksheet[targetAddress];
+          if (targetRow > range.e.r) break;
 
-          if (!targetCell || targetCell.v === undefined || targetCell.v === null) continue;
+          // Controlla la colonna principale C e la colonna affiancata C+1 per via del merge
+          [loc.c, loc.c + 1].forEach(colIndex => {
+            const targetAddress = XLSX.utils.encode_cell({ r: targetRow, c: colIndex });
+            const targetCell = worksheet[targetAddress];
 
-          // Se incontra un'altra data, interrompe la ricerca per quel giorno
-          if (targetCell.v instanceof Date) break;
+            if (!targetCell || targetCell.v === undefined || targetCell.v === null) return;
+            if (targetCell.v instanceof Date) return;
 
-          const valStr = String(targetCell.v).trim();
-          const lowerVal = valStr.toLowerCase();
+            const valStr = String(targetCell.v).trim();
+            const lowerVal = valStr.toLowerCase();
 
-          // Registra l'assegnazione
-          if (lowerVal === 'con me') {
-            overrides[loc.dateKey] = 'papa';
-            importedCount++;
-          } else if (lowerVal === 'con mamma') {
-            overrides[loc.dateKey] = 'mamma';
-            importedCount++;
-          } 
-          // Registra note ed eventi speciali (es. "ritiro", "cambio lei", "psicologa", "operazione")
-          else if (valStr.length > 0 && !['l','m','g','v','s','d','note'].includes(lowerVal)) {
-            notes[loc.dateKey] = { text: valStr, category: 'generico' };
-          }
+            // Rilevamento Turno
+            if (lowerVal === 'con me') {
+              overrides[loc.dateKey] = 'papa';
+              importedCount++;
+            } else if (lowerVal === 'con mamma') {
+              overrides[loc.dateKey] = 'mamma';
+              importedCount++;
+            } 
+            // Rilevamento Note (esclude intestazioni dei giorni L, M, G, V, S, D)
+            else if (
+              valStr.length > 0 && 
+              !['l','m','g','v','s','d','lun','mar','mer','gio','ven','sab','dom','note'].includes(lowerVal)
+            ) {
+              if (!noteCollector.includes(valStr)) {
+                noteCollector.push(valStr);
+              }
+            }
+          });
+        }
+
+        // Se sono state collegate note al giorno, memorizzale
+        if (noteCollector.length > 0) {
+          notes[loc.dateKey] = {
+            text: noteCollector.join(' - '),
+            category: 'generico'
+          };
+          importedNotesCount++;
         }
       });
     });
 
-    // Salva su Firebase/LocalStorage e aggiorna la grafica del calendario
-    if (typeof saveDataToFirestore === 'function') {
-      saveDataToFirestore();
-    }
+    // Salva su Firestore e aggiorna l'interfaccia
+    saveDataToFirestore();
+    render();
 
-    if (typeof renderCalendar === 'function') {
-      renderCalendar();
-    }
-
-    alert(`Importazione riuscita! Aggiornati ${importedCount} giorni e relative note dal file Excel.`);
+    alert(`Importazione completata con successo!\n- Turni aggiornati: ${importedCount}\n- Note/Eventi importati: ${importedNotesCount}`);
   };
 
   reader.readAsArrayBuffer(file);
