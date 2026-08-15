@@ -24,7 +24,7 @@
 <body>
 
   <h1>Turni Valerio</h1>
-  <div class="subhead">Tocca un giorno per cambiare il turno o registrare uno scambio</div>
+  <div class="subhead">Tocca un giorno per il turno, o usa 📝 per aggiungere note ed eventi</div>
 
   <div class="legend">
     <div class="legend-item"><span class="dot papa"></span> Con Te</div>
@@ -45,13 +45,38 @@
 
   <div class="grid" id="calendarGrid"></div>
 
+  <!-- MODALE PER GESTIONE NOTE ED EVENTI -->
+  <div id="noteModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 id="modalDateTitle">Aggiungi Evento / Nota</h3>
+      
+      <label for="noteCategory">Tipo di Evento:</label>
+      <select id="noteCategory">
+        <option value="allenamento">⚽ Allenamento / Partita</option>
+        <option value="medica">🏥 Visita Medica</option>
+        <option value="festa">🎉 Festa / Compleanno</option>
+        <option value="scuola">📚 Scuola / Gita</option>
+        <option value="generico">📌 Nota Generica</option>
+      </select>
+
+      <label for="noteTextInput">Descrizione / Nota:</label>
+      <input type="text" id="noteTextInput" placeholder="Es. Partita ore 15:00, Visita dentistica..." maxlength="40">
+
+      <div class="modal-actions">
+        <button class="btn-delete" id="btnDeleteNote" onclick="deleteCurrentNote()">Elimina Nota</button>
+        <button onclick="closeNoteModal()">Annulla</button>
+        <button class="btn-primary" onclick="saveCurrentNote()">Salva</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Registrazione Service Worker per PWA -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-          .then((reg) => console.log('Service Worker registrato con successo:', reg.scope))
-          .catch((err) => console.error('Errore registrazione Service Worker:', err));
+          .then((reg) => console.log('Service Worker registrato:', reg.scope))
+          .catch((err) => console.error('Errore Service Worker:', err));
       });
     }
   </script>
