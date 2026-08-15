@@ -351,45 +351,58 @@ window.importFromExcel = function(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+    // Disattivato cellDates per evitare l'interferenza del fuso orario UTC
+    const workbook = XLSX.read(data, { type: 'array', cellDates: false });
 
     let importedCount = 0;
     let importedNotesCount = 0;
 
     workbook.SheetNames.forEach(sheetName => {
-      // Processa solo i fogli mensili numerati (1..12)
-      if (isNaN(parseInt(sheetName))) return;
+      const sheetNum = parseInt(sheetName.trim());
+      if (isNaN(sheetNum) || sheetNum < 1 || sheetNum > 12) return;
+
+      // Imposta l'anno di riferimento (predefinito 2026 se non altrimenti specificato)
+      const targetYear = 2026;
+      const monthIdx = sheetNum - 1;
 
       const worksheet = workbook.Sheets[sheetName];
       if (!worksheet['!ref']) return;
 
       const range = XLSX.utils.decode_range(worksheet['!ref']);
-
-      // 1. Mappatura delle celle della griglia principale
       let dateLocations = [];
 
+      // 1. Individua i giorni nel foglio (punti d'origine del blocco giorno)
       for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = range.s.c; C <= range.e.c; ++C) {
-          // Ignora il riquadro riassuntivo/mini-calendario laterale
-          if (R < 8 && C > 9) continue;
+          if (R < 8 && C > 9) continue; // Salta il mini-calendario laterale
 
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
           const cell = worksheet[cellAddress];
+          if (!cell || cell.v === undefined || cell.v === null) continue;
 
-          if (cell && cell.v instanceof Date) {
-            const d = cell.v;
-            // Normalizzazione data UTC per prevenire sfasamenti di fuso orario
-            const year = d.getUTCFullYear();
-            const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-            const day = String(d.getUTCDate()).padStart(2, '0');
-            const dateKey = `${year}-${month}-${day}`;
+          let dayNum = null;
+
+          // Caso A: Cella contenente una data stringa o Date object
+          if (cell.t === 'd' || cell.v instanceof Date) {
+            const d = new Date(cell.v);
+            dayNum = d.getUTCDate();
+          } 
+          // Caso B: Cella contenente un numero intero (1-31)
+          else if (typeof cell.v === 'number' && cell.v >= 1 && cell.v <= 31) {
+            dayNum = Math.floor(cell.v);
+          }
+
+          if (dayNum !== null) {
+            const mStr = String(sheetNum).padStart(2, '0');
+            const dStr = String(dayNum).padStart(2, '0');
+            const dateKey = `${targetYear}-${mStr}-${dStr}`;
 
             dateLocations.push({ r: R, c: C, dateKey: dateKey });
           }
         }
       }
 
-      // 2. Scansione del blocco del giorno (compresa la colonna adiacente dovuta alle celle unite)
+      // 2. Scansione verticale e orizzontale del blocco relativo al giorno
       dateLocations.forEach(loc => {
         let noteCollector = [];
 
@@ -397,18 +410,16 @@ window.importFromExcel = function(event) {
           const targetRow = loc.r + offset;
           if (targetRow > range.e.r) break;
 
-          // Controlla la colonna principale C e la colonna affiancata C+1 per via del merge
           [loc.c, loc.c + 1].forEach(colIndex => {
             const targetAddress = XLSX.utils.encode_cell({ r: targetRow, c: colIndex });
             const targetCell = worksheet[targetAddress];
 
             if (!targetCell || targetCell.v === undefined || targetCell.v === null) return;
-            if (targetCell.v instanceof Date) return;
 
             const valStr = String(targetCell.v).trim();
             const lowerVal = valStr.toLowerCase();
 
-            // Rilevamento Turno
+            // Mappatura Turni
             if (lowerVal === 'con me') {
               overrides[loc.dateKey] = 'papa';
               importedCount++;
@@ -416,10 +427,11 @@ window.importFromExcel = function(event) {
               overrides[loc.dateKey] = 'mamma';
               importedCount++;
             } 
-            // Rilevamento Note (esclude intestazioni dei giorni L, M, G, V, S, D)
+            // Mappatura Note/Eventi
             else if (
               valStr.length > 0 && 
-              !['l','m','g','v','s','d','lun','mar','mer','gio','ven','sab','dom','note'].includes(lowerVal)
+              !['l','m','g','v','s','d','lun','mar','mer','gio','ven','sab','dom','note'].includes(lowerVal) &&
+              isNaN(Number(valStr))
             ) {
               if (!noteCollector.includes(valStr)) {
                 noteCollector.push(valStr);
@@ -428,7 +440,6 @@ window.importFromExcel = function(event) {
           });
         }
 
-        // Se sono state collegate note al giorno, memorizzale
         if (noteCollector.length > 0) {
           notes[loc.dateKey] = {
             text: noteCollector.join(' - '),
@@ -439,11 +450,11 @@ window.importFromExcel = function(event) {
       });
     });
 
-    // Salva su Firestore e aggiorna l'interfaccia
+    // Salva su Firestore e aggiorna la griglia
     saveDataToFirestore();
     render();
 
-    alert(`Importazione completata con successo!\n- Turni aggiornati: ${importedCount}\n- Note/Eventi importati: ${importedNotesCount}`);
+    alert(`Importazione completata!\n- Turni aggiornati: ${importedCount}\n- Note/Eventi salvati: ${importedNotesCount}`);
   };
 
   reader.readAsArrayBuffer(file);
