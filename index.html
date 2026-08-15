@@ -1,11 +1,10 @@
-HTML
 <!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calendario Turni Valerio</title>
-  <!-- SheetJS per esportazione Excel -->
+  <!-- SheetJS CDN per esportazione Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root { 
@@ -22,15 +21,21 @@ HTML
     h1 { 
       font-size: 1.25rem; 
       text-align: center; 
-      margin-bottom: 16px; 
+      margin-bottom: 8px; 
       color: #0f172a; 
+    }
+    .subhead {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 16px;
     }
     .legend { 
       display: flex; 
       justify-content: center; 
       gap: 16px; 
       margin-bottom: 16px; 
-      font-size: 0.9rem; 
+      font-size: 0.85rem; 
       font-weight: 600; 
     }
     .legend-item { 
@@ -56,18 +61,19 @@ HTML
     .action-buttons { 
       display: flex; 
       justify-content: center; 
-      gap: 10px; 
+      gap: 8px; 
+      flex-wrap: wrap;
       margin-bottom: 16px; 
     }
 
     button { 
       background: #ffffff; 
       border: 1px solid #cbd5e1; 
-      padding: 8px 14px; 
+      padding: 8px 12px; 
       border-radius: 8px; 
       font-weight: 600; 
       cursor: pointer; 
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -87,8 +93,13 @@ HTML
       border-color: #16a34a;
     }
     button.btn-excel:hover { background: #15803d; }
+    button.btn-reset {
+      background: #f1f5f9;
+      color: #64748b;
+      border-color: #cbd5e1;
+    }
 
-    .month-title { font-weight: 700; font-size: 1.1rem; }
+    .month-title { font-weight: 700; font-size: 1rem; text-transform: capitalize; }
     .grid { 
       display: grid; 
       grid-template-columns: repeat(7, 1fr); 
@@ -108,26 +119,43 @@ HTML
     }
     .day-cell { 
       background: #fff; 
-      min-height: 52px; 
+      min-height: 58px; 
       padding: 4px; 
       display: flex; 
       flex-direction: column; 
       justify-content: space-between; 
       font-size: 0.85rem; 
       font-weight: 600; 
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.1s ease;
     }
-    .day-cell.other-month { background: #f8fafc; color: #cbd5e1; }
+    .day-cell:hover { background: #f8fafc; }
+    .day-cell.other-month { background: #f8fafc; color: #cbd5e1; cursor: default; }
+    
     .badge { 
       border-radius: 4px; 
       padding: 2px 4px; 
-      font-size: 0.7rem; 
+      font-size: 0.68rem; 
       color: white; 
       text-align: center; 
       margin-top: 4px; 
-      font-weight: 500; 
+      font-weight: 600; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
     }
     .badge.papa { background: var(--p-color); }
     .badge.mamma { background: var(--m-color); }
+    .badge-changed {
+      font-size: 0.55rem;
+      background: rgba(255, 255, 255, 0.3);
+      padding: 1px 3px;
+      border-radius: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
 
     /* REGOLE DI STAMPA */
     @media print {
@@ -136,7 +164,7 @@ HTML
         color: #000000 !important;
         padding: 0;
       }
-      .controls, .action-buttons {
+      .controls, .action-buttons, .subhead {
         display: none !important;
       }
       .grid {
@@ -167,6 +195,7 @@ HTML
 <body>
 
   <h1>Turni Valerio</h1>
+  <div class="subhead">Tocca un giorno per cambiare il turno o registrare uno scambio</div>
 
   <div class="legend">
     <div class="legend-item"><span class="dot papa"></span> Con Te</div>
@@ -174,8 +203,9 @@ HTML
   </div>
 
   <div class="action-buttons">
-    <button class="btn-primary" onclick="window.print()">🖨️ Stampa / Salva PDF</button>
-    <button class="btn-excel" onclick="exportToExcel()">📊 Esporta in Excel</button>
+    <button class="btn-primary" onclick="window.print()">🖨️ Stampa / PDF</button>
+    <button class="btn-excel" onclick="exportToExcel()">📊 Esporta Excel</button>
+    <button class="btn-reset" onclick="resetOverrides()">🔄 Ripristina Standard</button>
   </div>
 
   <div class="controls">
@@ -190,18 +220,76 @@ HTML
     let currentDate = new Date(2026, 8, 1); // Settembre 2026
     const startDateA = new Date(2026, 8, 7); // Lunedì 7 Settembre 2026 (Inizio Settimana A)
 
-    function isWithDad(date) {
+    // Recupera cambi personalizzati salvati in memoria
+    function getOverrides() {
+      const saved = localStorage.getItem('valerio_turni_overrides');
+      return saved ? JSON.parse(saved) : {};
+    }
+
+    function saveOverrides(overrides) {
+      localStorage.setItem('valerio_turni_overrides', JSON.stringify(overrides));
+    }
+
+    function formatDateKey(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    // Calcolo del genitore di turno secondo la rotazione standard
+    function getStandardParent(date) {
       const msPerDay = 86400000;
       const daysDiff = Math.floor((date - startDateA) / msPerDay);
-      if (daysDiff < 0) return false;
+      if (daysDiff < 0) return null;
 
       const cycleDay = (daysDiff % 14 + 14) % 14; 
-      // Settimana A (giorni 0-6): Lun(0), Giu(3), Sab(5), Dom(6)
-      if (cycleDay === 0 || cycleDay === 3 || cycleDay === 5 || cycleDay === 6) return true;
-      // Settimana B (giorni 7-13): Mar(8), Giu(10)
-      if (cycleDay === 8 || cycleDay === 10) return true;
+      // Settimana A (giorni 0-6): Lun(0), Giu(3), Sab(5), Dom(6) -> Papà
+      if (cycleDay === 0 || cycleDay === 3 || cycleDay === 5 || cycleDay === 6) return 'papa';
+      // Settimana B (giorni 7-13): Mar(8), Giu(10) -> Papà
+      if (cycleDay === 8 || cycleDay === 10) return 'papa';
 
-      return false;
+      return 'mamma';
+    }
+
+    // Restituisce il genitore effettivo prendendo in considerazione eventuali cambi
+    function getParentForDate(date) {
+      const dateKey = formatDateKey(date);
+      const overrides = getOverrides();
+      
+      if (overrides[dateKey]) {
+        return { parent: overrides[dateKey], isOverride: true };
+      }
+      
+      const standard = getStandardParent(date);
+      return { parent: standard, isOverride: false };
+    }
+
+    // Gestione del click su un giorno per effettuare uno scambio
+    function toggleDayOverride(dateKey, standardParent) {
+      const date = new Date(dateKey + 'T00:00:00');
+      if (date < startDateA) return;
+
+      const overrides = getOverrides();
+      const currentStatus = getParentForDate(date);
+
+      if (!currentStatus.isOverride) {
+        // Da standard -> inverti
+        overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
+      } else {
+        // Se era già modificato -> ripristina lo standard
+        delete overrides[dateKey];
+      }
+
+      saveOverrides(overrides);
+      renderCalendar();
+    }
+
+    function resetOverrides() {
+      if (confirm("Vuoi cancellare tutti i cambi manuali e ripristinare il calendario standard?")) {
+        localStorage.removeItem('valerio_turni_overrides');
+        renderCalendar();
+      }
     }
 
     function renderCalendar() {
@@ -236,6 +324,7 @@ HTML
 
       for (let day = 1; day <= lastDay.getDate(); day++) {
         const date = new Date(year, month, day);
+        const dateKey = formatDateKey(date);
         const cell = document.createElement('div');
         cell.className = 'day-cell';
         
@@ -244,11 +333,19 @@ HTML
         cell.appendChild(dayNumber);
 
         if (date >= startDateA) {
-          const withDad = isWithDad(date);
+          const status = getParentForDate(date);
           const badge = document.createElement('div');
-          badge.className = `badge ${withDad ? 'papa' : 'mamma'}`;
-          badge.textContent = withDad ? 'Papà' : 'Mamma';
+          badge.className = `badge ${status.parent}`;
+          
+          let labelText = status.parent === 'papa' ? 'Papà' : 'Mamma';
+          badge.innerHTML = `<span>${labelText}</span>`;
+
+          if (status.isOverride) {
+            badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
+          }
+
           cell.appendChild(badge);
+          cell.onclick = () => toggleDayOverride(dateKey, getStandardParent(date));
         }
 
         grid.appendChild(cell);
@@ -267,7 +364,7 @@ HTML
       const daysInMonth = new Date(year, month + 1, 0).getDate();
 
       const data = [
-        ["Data", "Giorno", "Genitore con Valerio"]
+        ["Data", "Giorno", "Genitore con Valerio", "Note"]
       ];
 
       const daysOfWeek = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
@@ -278,11 +375,17 @@ HTML
         const dayName = daysOfWeek[date.getDay()];
         
         let genitore = "Non definito";
+        let nota = "";
+
         if (date >= startDateA) {
-          genitore = isWithDad(date) ? "Papà" : "Mamma";
+          const status = getParentForDate(date);
+          genitore = status.parent === 'papa' ? 'Papà' : 'Mamma';
+          if (status.isOverride) {
+            nota = "Cambio/Scambio concordato";
+          }
         }
 
-        data.push([dateStr, dayName, genitore]);
+        data.push([dateStr, dayName, genitore, nota]);
       }
 
       const ws = XLSX.utils.aoa_to_sheet(data);
@@ -292,7 +395,8 @@ HTML
       ws['!cols'] = [
         { wch: 12 },
         { wch: 12 },
-        { wch: 22 }
+        { wch: 22 },
+        { wch: 25 }
       ];
 
       XLSX.writeFile(wb, `Turni_Valerio_${monthName}_${year}.xlsx`);
