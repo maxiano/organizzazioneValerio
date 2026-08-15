@@ -1,13 +1,3 @@
-L'errore principale (Uncaught TypeError: Cannot set properties of null (setting 'textContent')) si verifica perché il browser ha mantenuto in cache una versione precedente di app.js che cerca l'elemento <div id="monthTitle">, mentre nel nuovo index.html abbiamo sostituito il titolo fisso con i due menu a tendina <select id="monthSelect"> e <select id="yearSelect">.
-
-Inoltre, le funzioni come switchView restituiscono ReferenceError perché, usando i moduli ES6 (type="module"), le funzioni definite in app.js devono essere agganciate esplicitamente all'oggetto globale window.
-
-Ecco il codice completo aggiornato e corretto per tutti e 3 i file:
-
-1. index.html
-Sostituisci il contenuto con questa versione pulita e priva di id mancanti:
-
-HTML
 <!DOCTYPE html>
 <html lang="it">
 <head>
