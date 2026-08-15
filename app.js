@@ -3,14 +3,14 @@ import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/f
 
 // Credenziali Firebase
 const firebaseConfig = {
-  apiKey: "IL_TUO_API_KEY",
-  authDomain: "IL_TUO_PROJECT_ID.firebaseapp.com",
-  projectId: "IL_TUO_PROJECT_ID",
-  storageBucket: "IL_TUO_PROJECT_ID.appspot.com",
-  messagingSenderId: "IL_TUO_SENDER_ID",
-  appId: "IL_TUO_APP_ID"
+  apiKey: "AIzaSyAGEPZjO0DnXAR9wJpOqfui5hYgJAYcE-k",
+  authDomain: "gestione-valerio.firebaseapp.com",
+  projectId: "gestione-valerio",
+  storageBucket: "gestione-valerio.firebasestorage.app",
+  messagingSenderId: "596812330710",
+  appId: "1:596812330710:web:03ad86e55032728cd07b77",
+  measurementId: "G-36RKDPZZ3T"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const docRef = doc(db, "turni_valerio", "overrides");
