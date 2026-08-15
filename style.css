@@ -100,6 +100,13 @@ button.btn-reset {
   border-color: #cbd5e1;
 }
 
+button.btn-delete {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+}
+button.btn-delete:hover { background: #dc2626; }
+
 .month-title { font-weight: 700; font-size: 1rem; text-transform: capitalize; }
 
 .grid { 
@@ -123,7 +130,7 @@ button.btn-reset {
 
 .day-cell { 
   background: #fff; 
-  min-height: 58px; 
+  min-height: 68px; 
   padding: 4px; 
   display: flex; 
   flex-direction: column; 
@@ -133,17 +140,39 @@ button.btn-reset {
   cursor: pointer;
   user-select: none;
   transition: background 0.1s ease;
+  position: relative;
 }
 .day-cell:hover { background: #f8fafc; }
 .day-cell.other-month { background: #f8fafc; color: #cbd5e1; cursor: default; }
 
+.cell-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.btn-note-trigger {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 0.75rem;
+  box-shadow: none;
+  opacity: 0.5;
+  cursor: pointer;
+}
+.btn-note-trigger:hover, .btn-note-trigger.has-note {
+  opacity: 1;
+}
+
+/* BADGES TURNI */
 .badge { 
   border-radius: 4px; 
   padding: 2px 4px; 
   font-size: 0.68rem; 
   color: white; 
   text-align: center; 
-  margin-top: 4px; 
+  margin-top: 2px; 
   font-weight: 600; 
   display: flex;
   flex-direction: column;
@@ -162,36 +191,72 @@ button.btn-reset {
   letter-spacing: 0.5px;
 }
 
+/* BADGES EVENTI / NOTE */
+.event-badge {
+  font-size: 0.62rem;
+  padding: 2px 4px;
+  border-radius: 3px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: #fff;
+}
+.event-badge.allenamento { background: #16a34a; }
+.event-badge.medica { background: #dc2626; }
+.event-badge.festa { background: #9333ea; }
+.event-badge.scuola { background: #ea580c; }
+.event-badge.generico { background: #475569; }
+
+/* MODALE NOTE */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.5);
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.modal-overlay.active { display: flex; }
+
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.modal-content h3 { margin: 0 0 4px 0; font-size: 1.05rem; }
+.modal-content label { font-size: 0.8rem; font-weight: 600; color: #475569; }
+.modal-content input, .modal-content select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  box-sizing: border-box;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 /* REGOLE DI STAMPA */
 @media print {
-  body {
-    background: #ffffff !important;
-    color: #000000 !important;
-    padding: 0;
-  }
-  .controls, .action-buttons, .subhead {
-    display: none !important;
-  }
-  .grid {
-    background: #000000 !important;
-    border: 1px solid #000000 !important;
-  }
-  .day-header {
-    background: #e2e8f0 !important;
-    color: #000000 !important;
-  }
-  .day-cell {
-    background: #ffffff !important;
-    min-height: 70px;
-  }
-  .badge.papa {
-    background: #2563eb !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  .badge.mamma {
-    background: #ec4899 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
+  body { background: #ffffff !important; color: #000000 !important; padding: 0; }
+  .controls, .action-buttons, .subhead, .btn-note-trigger, .modal-overlay { display: none !important; }
+  .grid { background: #000000 !important; border: 1px solid #000000 !important; }
+  .day-header { background: #e2e8f0 !important; color: #000000 !important; }
+  .day-cell { background: #ffffff !important; min-height: 75px; }
+  .badge.papa { background: #2563eb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .badge.mamma { background: #ec4899 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
