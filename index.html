@@ -1,36 +1,181 @@
+HTML
 <!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calendario Turni Valerio</title>
+  <!-- SheetJS per esportazione Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    :root { --p-color: #2563eb; --m-color: #ec4899; }
-    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 16px; background: #f8fafc; color: #1e293b; }
-    h1 { font-size: 1.25rem; text-align: center; margin-bottom: 16px; color: #0f172a; }
-    .legend { display: flex; justify-content: center; gap: 16px; margin-bottom: 16px; font-size: 0.9rem; font-weight: 600; }
-    .legend-item { display: flex; align-items: center; gap: 6px; }
-    .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    :root { 
+      --p-color: #2563eb; 
+      --m-color: #ec4899; 
+    }
+    body { 
+      font-family: system-ui, -apple-system, sans-serif; 
+      margin: 0; 
+      padding: 16px; 
+      background: #f8fafc; 
+      color: #1e293b; 
+    }
+    h1 { 
+      font-size: 1.25rem; 
+      text-align: center; 
+      margin-bottom: 16px; 
+      color: #0f172a; 
+    }
+    .legend { 
+      display: flex; 
+      justify-content: center; 
+      gap: 16px; 
+      margin-bottom: 16px; 
+      font-size: 0.9rem; 
+      font-weight: 600; 
+    }
+    .legend-item { 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+    }
+    .dot { 
+      width: 12px; 
+      height: 12px; 
+      border-radius: 50%; 
+      display: inline-block; 
+    }
     .dot.papa { background: var(--p-color); }
     .dot.mamma { background: var(--m-color); }
-    .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    button { background: #ffffff; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+
+    .controls { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 12px; 
+    }
+    .action-buttons { 
+      display: flex; 
+      justify-content: center; 
+      gap: 10px; 
+      margin-bottom: 16px; 
+    }
+
+    button { 
+      background: #ffffff; 
+      border: 1px solid #cbd5e1; 
+      padding: 8px 14px; 
+      border-radius: 8px; 
+      font-weight: 600; 
+      cursor: pointer; 
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      transition: background 0.15s ease;
+    }
+    button:hover { background: #f1f5f9; }
+    button.btn-primary {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+    button.btn-primary:hover { background: #1d4ed8; }
+    button.btn-excel {
+      background: #16a34a;
+      color: #ffffff;
+      border-color: #16a34a;
+    }
+    button.btn-excel:hover { background: #15803d; }
+
     .month-title { font-weight: 700; font-size: 1.1rem; }
-    .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: #cbd5e1; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
-    .day-header { background: #f1f5f9; padding: 8px 2px; text-align: center; font-size: 0.75rem; font-weight: 700; color: #64748b; }
-    .day-cell { background: #fff; min-height: 52px; padding: 4px; display: flex; flex-direction: column; justify-content: space-between; font-size: 0.85rem; font-weight: 600; }
+    .grid { 
+      display: grid; 
+      grid-template-columns: repeat(7, 1fr); 
+      gap: 4px; 
+      background: #cbd5e1; 
+      border: 1px solid #cbd5e1; 
+      border-radius: 8px; 
+      overflow: hidden; 
+    }
+    .day-header { 
+      background: #f1f5f9; 
+      padding: 8px 2px; 
+      text-align: center; 
+      font-size: 0.75rem; 
+      font-weight: 700; 
+      color: #64748b; 
+    }
+    .day-cell { 
+      background: #fff; 
+      min-height: 52px; 
+      padding: 4px; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: space-between; 
+      font-size: 0.85rem; 
+      font-weight: 600; 
+    }
     .day-cell.other-month { background: #f8fafc; color: #cbd5e1; }
-    .badge { border-radius: 4px; padding: 2px 4px; font-size: 0.7rem; color: white; text-align: center; margin-top: 4px; font-weight: 500; }
+    .badge { 
+      border-radius: 4px; 
+      padding: 2px 4px; 
+      font-size: 0.7rem; 
+      color: white; 
+      text-align: center; 
+      margin-top: 4px; 
+      font-weight: 500; 
+    }
     .badge.papa { background: var(--p-color); }
     .badge.mamma { background: var(--m-color); }
+
+    /* REGOLE DI STAMPA */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0;
+      }
+      .controls, .action-buttons {
+        display: none !important;
+      }
+      .grid {
+        background: #000000 !important;
+        border: 1px solid #000000 !important;
+      }
+      .day-header {
+        background: #e2e8f0 !important;
+        color: #000000 !important;
+      }
+      .day-cell {
+        background: #ffffff !important;
+        min-height: 70px;
+      }
+      .badge.papa {
+        background: #2563eb !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .badge.mamma {
+        background: #ec4899 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
   </style>
 </head>
 <body>
 
   <h1>Turni Valerio</h1>
+
   <div class="legend">
     <div class="legend-item"><span class="dot papa"></span> Con Te</div>
     <div class="legend-item"><span class="dot mamma"></span> Con Mamma</div>
+  </div>
+
+  <div class="action-buttons">
+    <button class="btn-primary" onclick="window.print()">🖨️ Stampa / Salva PDF</button>
+    <button class="btn-excel" onclick="exportToExcel()">📊 Esporta in Excel</button>
   </div>
 
   <div class="controls">
@@ -113,6 +258,44 @@
     function changeMonth(delta) {
       currentDate.setMonth(currentDate.getMonth() + delta);
       renderCalendar();
+    }
+
+    function exportToExcel() {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const monthName = new Intl.DateTimeFormat('it-IT', { month: 'long' }).format(currentDate);
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      const data = [
+        ["Data", "Giorno", "Genitore con Valerio"]
+      ];
+
+      const daysOfWeek = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const dateStr = `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year}`;
+        const dayName = daysOfWeek[date.getDay()];
+        
+        let genitore = "Non definito";
+        if (date >= startDateA) {
+          genitore = isWithDad(date) ? "Papà" : "Mamma";
+        }
+
+        data.push([dateStr, dayName, genitore]);
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, `${monthName} ${year}`);
+
+      ws['!cols'] = [
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 22 }
+      ];
+
+      XLSX.writeFile(wb, `Turni_Valerio_${monthName}_${year}.xlsx`);
     }
 
     renderCalendar();
