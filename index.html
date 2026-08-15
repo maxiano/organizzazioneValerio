@@ -216,18 +216,48 @@
 
   <div class="grid" id="calendarGrid"></div>
 
-  <script>
+  <!-- Firebase App & Firestore Web SDK v10 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 🔴 INSERISCI QUI LE SUE CREDENZIALI FIREBASE
+    const firebaseConfig = {
+      apiKey: "IL_TUO_API_KEY",
+      authDomain: "IL_TUO_PROJECT_ID.firebaseapp.com",
+      projectId: "IL_TUO_PROJECT_ID",
+      storageBucket: "IL_TUO_PROJECT_ID.appspot.com",
+      messagingSenderId: "IL_TUO_SENDER_ID",
+      appId: "IL_TUO_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const docRef = doc(db, "turni_valerio", "overrides");
+
+    let overrides = {};
     let currentDate = new Date(2026, 8, 1); // Settembre 2026
     const startDateA = new Date(2026, 8, 7); // Lunedì 7 Settembre 2026 (Inizio Settimana A)
 
-    // Recupera cambi personalizzati salvati in memoria
-    function getOverrides() {
-      const saved = localStorage.getItem('valerio_turni_overrides');
-      return saved ? JSON.parse(saved) : {};
-    }
+    // Sincronizzazione in Tempo Reale da Firestore
+    onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        overrides = docSnap.data().data || {};
+      } else {
+        overrides = {};
+      }
+      renderCalendar();
+    }, (error) => {
+      console.error("Errore di sincronizzazione con Firestore:", error);
+    });
 
-    function saveOverrides(overrides) {
-      localStorage.setItem('valerio_turni_overrides', JSON.stringify(overrides));
+    // Salva le modifiche su Firestore
+    async function saveOverridesToFirestore(updatedOverrides) {
+      try {
+        await setDoc(docRef, { data: updatedOverrides });
+      } catch (error) {
+        console.error("Errore durante il salvataggio su Firestore:", error);
+      }
     }
 
     function formatDateKey(date) {
@@ -255,7 +285,6 @@
     // Restituisce il genitore effettivo prendendo in considerazione eventuali cambi
     function getParentForDate(date) {
       const dateKey = formatDateKey(date);
-      const overrides = getOverrides();
       
       if (overrides[dateKey]) {
         return { parent: overrides[dateKey], isOverride: true };
@@ -266,31 +295,29 @@
     }
 
     // Gestione del click su un giorno per effettuare uno scambio
-    function toggleDayOverride(dateKey, standardParent) {
+    window.toggleDayOverride = function(dateKey, standardParent) {
       const date = new Date(dateKey + 'T00:00:00');
       if (date < startDateA) return;
 
-      const overrides = getOverrides();
       const currentStatus = getParentForDate(date);
+      const newOverrides = { ...overrides };
 
       if (!currentStatus.isOverride) {
         // Da standard -> inverti
-        overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
+        newOverrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
       } else {
         // Se era già modificato -> ripristina lo standard
-        delete overrides[dateKey];
+        delete newOverrides[dateKey];
       }
 
-      saveOverrides(overrides);
-      renderCalendar();
-    }
+      saveOverridesToFirestore(newOverrides);
+    };
 
-    function resetOverrides() {
+    window.resetOverrides = function() {
       if (confirm("Vuoi cancellare tutti i cambi manuali e ripristinare il calendario standard?")) {
-        localStorage.removeItem('valerio_turni_overrides');
-        renderCalendar();
+        saveOverridesToFirestore({});
       }
-    }
+    };
 
     function renderCalendar() {
       const grid = document.getElementById('calendarGrid');
@@ -345,19 +372,19 @@
           }
 
           cell.appendChild(badge);
-          cell.onclick = () => toggleDayOverride(dateKey, getStandardParent(date));
+          cell.onclick = () => window.toggleDayOverride(dateKey, getStandardParent(date));
         }
 
         grid.appendChild(cell);
       }
     }
 
-    function changeMonth(delta) {
+    window.changeMonth = function(delta) {
       currentDate.setMonth(currentDate.getMonth() + delta);
       renderCalendar();
-    }
+    };
 
-    function exportToExcel() {
+    window.exportToExcel = function() {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
       const monthName = new Intl.DateTimeFormat('it-IT', { month: 'long' }).format(currentDate);
@@ -400,7 +427,7 @@
       ];
 
       XLSX.writeFile(wb, `Turni_Valerio_${monthName}_${year}.xlsx`);
-    }
+    };
 
     renderCalendar();
   </script>
