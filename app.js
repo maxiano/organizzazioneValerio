@@ -83,13 +83,7 @@ function getStandardParent(date) {
   return 'mamma';
 }
 
-function getParentForDate(date) {
-  const dateKey = formatDateKey(date);
-  if (overrides[dateKey]) {
-    return { parent: overrides[dateKey], isOverride: true };
-  }
-  return { parent: getStandardParent(date), isOverride: false };
-}
+
 
 window.toggleDayOverride = function(dateKey) {
   const date = new Date(dateKey + 'T00:00:00');
@@ -354,24 +348,21 @@ window.importFromCSV = function(event) {
     let importedNote = 0;
 
     let targetYear = 2026;
-    let targetMonth = 1; // 1 = Febbraio (0-based: Gen=0, Feb=1, Mar=2)
+    let targetMonth = 1; // Febbraio (0-based: 1 = Febbraio)
 
-    // Cerca le righe contenenti i numeri dei giorni
     for (let r = 0; r < lines.length; r++) {
       const row = lines[r];
 
       for (let c = 0; c < row.length; c++) {
-        const val = row[c] ? row[c].trim() : '';
-        const dayNum = parseInt(val);
+        const rawVal = row[c] ? row[c].trim() : '';
+        const dayNum = parseInt(rawVal);
 
-        // Se trova un numero giorno valido (1-31)
-        if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31 && val === String(dayNum)) {
+        // Identifica la cella del numero del giorno (1-31)
+        if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31 && rawVal === String(dayNum)) {
 
-          // Filtra il '1' di Marzo alla fine della griglia di Febbraio
+          // Ignora i giorni del mese successivo/precedente ai margini del foglio
           if (r > 30 && dayNum === 1) continue;
-
-          // Esclude i giorni di Gennaio (26-31) presenti prima del giorno 1 di Febbraio
-          if (r === 9 && dayNum > 20) continue;
+          if (r < 10 && dayNum > 20) continue;
 
           const mStr = String(targetMonth + 1).padStart(2, '0');
           const dStr = String(dayNum).padStart(2, '0');
@@ -380,34 +371,40 @@ window.importFromCSV = function(event) {
           let noteList = [];
           let detectedParent = null;
 
-          // Scansiona fino a 6 righe sottostanti per leggere 'con me' / 'con mamma' e le note
+          // Cerca nelle 6 righe sottostanti sia nella colonna corrente che in quella adiacente
           for (let offset = 1; offset <= 6; offset++) {
             if (r + offset >= lines.length) break;
 
-            const subVal = lines[r + offset][c] ? lines[r + offset][c].trim() : '';
-            const lowerSubVal = subVal.toLowerCase();
+            [c, c + 1].forEach(colIdx => {
+              if (colIdx >= lines[r + offset].length) return;
 
-            if (!subVal) continue;
+              // Pulizia approfondita della stringa da spazi e caratteri speciali
+              const cellText = lines[r + offset][colIdx] ? lines[r + offset][colIdx].trim().replace(/\s+/g, ' ') : '';
+              const lowerText = cellText.toLowerCase();
 
-            if (lowerSubVal === 'con me') {
-              detectedParent = 'papa';
-            } else if (lowerSubVal === 'con mamma') {
-              detectedParent = 'mamma';
-            } else if (
-              !['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica', 'note'].includes(lowerSubVal) &&
-              isNaN(Number(subVal))
-            ) {
-              if (!noteList.includes(subVal)) noteList.push(subVal);
-            }
+              if (!cellText) return;
+
+              // Riconoscimento flessibile per "con me" / "con mamma"
+              if (lowerText.includes('con me') || lowerText.includes('con papa') || lowerText === 'me' || lowerText === 'papa') {
+                detectedParent = 'papa';
+              } else if (lowerText.includes('con mamma') || lowerText === 'mamma') {
+                detectedParent = 'mamma';
+              } 
+              // Registrazione note ed eventi
+              else if (
+                !['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica', 'note'].includes(lowerText) &&
+                isNaN(Number(cellText))
+              ) {
+                if (!noteList.includes(cellText)) noteList.push(cellText);
+              }
+            });
           }
 
-          // Salva l'assegnazione nel database degli overrides
           if (detectedParent) {
             overrides[dateKey] = detectedParent;
             importedTurni++;
           }
 
-          // Salva le note/eventi
           if (noteList.length > 0) {
             notes[dateKey] = {
               text: noteList.join(' - '),
@@ -419,17 +416,26 @@ window.importFromCSV = function(event) {
       }
     }
 
-    // Imposta la vista del calendario direttamente su Febbraio 2026
+    // Sposta la vista del calendario direttamente su Febbraio 2026
     currentDate = new Date(targetYear, targetMonth, 1);
 
     saveDataToFirestore();
     render();
 
-    alert(`Importazione completata con successo!\n- Turni salvati: ${importedTurni}\n- Note/Eventi salvati: ${importedNote}`);
+    alert(`Importazione completata con successo!\n- Turni riconosciuti: ${importedTurni}\n- Note/Eventi salvati: ${importedNote}`);
   };
 
   reader.readAsText(file, 'ISO-8859-1');
 };
+
+function getParentForDate(date) {
+  const dateKey = formatDateKey(date);
+  // Se la data è presente negli overrides (caricati da CSV o modificati), restituisci il valore
+  if (overrides && overrides[dateKey]) {
+    return { parent: overrides[dateKey], isOverride: true };
+  }
+  return { parent: getStandardParent(date), isOverride: false };
+}
 
 window.exportToExcel = function() {
   const year = currentDate.getFullYear();
