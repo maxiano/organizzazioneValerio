@@ -93,23 +93,18 @@ function getParentForDate(date) {
 
 window.toggleDayOverride = function(dateKey) {
   const date = new Date(dateKey + 'T00:00:00');
-  if (date < startDateA) return;
 
   const currentStatus = getParentForDate(date);
-  if (!currentStatus.isOverride) {
+  if (!currentStatus.isOverride && currentStatus.parent) {
+    overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
+  } else if (currentStatus.isOverride) {
     overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
   } else {
-    delete overrides[dateKey];
+    overrides[dateKey] = 'papa';
   }
   saveDataToFirestore();
 };
 
-window.resetOverrides = function() {
-  if (confirm("Vuoi cancellare tutti i cambi manuali e le note salvate?")) {
-    overrides = {}; notes = {};
-    saveDataToFirestore();
-  }
-};
 
 function setupDateSelectors() {
   const monthSelect = document.getElementById('monthSelect');
@@ -272,15 +267,14 @@ function renderGrid() {
       cell.appendChild(eventBadge);
     }
 
-    if (date >= startDateA) {
-      const status = getParentForDate(date);
-      if (status.parent) {
-        const badge = document.createElement('div');
-        badge.className = `badge ${status.parent}`;
-        badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
-        if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
-        cell.appendChild(badge);
-      }
+    // MODIFICA QUI: Rimosso il blocco "if (date >= startDateA)"
+    const status = getParentForDate(date);
+    if (status && status.parent) {
+      const badge = document.createElement('div');
+      badge.className = `badge ${status.parent}`;
+      badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
+      if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
+      cell.appendChild(badge);
     }
 
     cell.onclick = () => window.toggleDayOverride(dateKey);
@@ -322,15 +316,14 @@ function renderList() {
     const right = document.createElement('div');
     right.className = 'list-item-right';
 
-    if (date >= startDateA) {
-      const status = getParentForDate(date);
-      if (status.parent) {
-        const badge = document.createElement('div');
-        badge.className = `badge ${status.parent}`;
-        badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
-        if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
-        cell.appendChild(badge);
-      }
+    // MODIFICA QUI: Rimosso il blocco "if (date >= startDateA)"
+    const status = getParentForDate(date);
+    if (status && status.parent) {
+      const badge = document.createElement('div');
+      badge.className = `badge ${status.parent}`;
+      badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
+      if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
+      right.appendChild(badge);
     }
 
     const noteBtn = document.createElement('button');
