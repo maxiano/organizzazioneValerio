@@ -431,6 +431,15 @@ window.importFromCSV = function(event) {
   reader.readAsText(file, 'ISO-8859-1');
 };
 
+window.resetOverrides = function() {
+  if (confirm("Vuoi cancellare tutti i cambi manuali e le note salvate?")) {
+    overrides = {};
+    notes = {};
+    saveDataToFirestore();
+    render();
+  }
+};
+
 window.exportToExcel = function() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
