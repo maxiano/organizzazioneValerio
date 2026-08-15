@@ -36,15 +36,28 @@
     <div class="legend-item"><span class="dot mamma"></span> Con Mamma</div>
   </div>
 
-  <div class="action-buttons">
-    <label class="btn-primary" style="cursor: pointer; background-color: #059669; display: inline-flex; align-items: center; gap: 6px;">
-  📂 Carica File Excel
-  <input type="file" id="excelInput" accept=".xlsx, .xls" onchange="importFromExcel(event)" style="display: none;">
-</labe
-    <button class="btn-primary" onclick="window.print()">🖨️ Stampa / PDF</button>
-    <button class="btn-excel" onclick="exportToExcel()">📊 Esporta Excel</button>
-    <button class="btn-reset" onclick="resetOverrides()">🔄 Ripristina Standard</button>
-  </div>
+ <div class="action-buttons">
+  <label for="excelInput" class="btn btn-import">
+    <span class="btn-icon">📂</span>
+    <span>Carica File Excel</span>
+    <input type="file" id="excelInput" accept=".xlsx, .xls" onchange="importFromExcel(event)">
+  </label>
+
+  <button type="button" class="btn btn-print" onclick="window.print()">
+    <span class="btn-icon">🖨️</span>
+    <span>Stampa / PDF</span>
+  </button>
+
+  <button type="button" class="btn btn-export" onclick="exportToExcel()">
+    <span class="btn-icon">📊</span>
+    <span>Esporta Excel</span>
+  </button>
+
+  <button type="button" class="btn btn-reset" onclick="resetOverrides()">
+    <span class="btn-icon">🔄</span>
+    <span>Ripristina Standard</span>
+  </button>
+</div>
 
   <!-- SELETTORE VISTA (GRIGLIA / LISTA) -->
   <div class="view-toggle">
