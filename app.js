@@ -274,11 +274,13 @@ function renderGrid() {
 
     if (date >= startDateA) {
       const status = getParentForDate(date);
-      const badge = document.createElement('div');
-      badge.className = `badge ${status.parent}`;
-      badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
-      if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
-      cell.appendChild(badge);
+      if (status.parent) {
+        const badge = document.createElement('div');
+        badge.className = `badge ${status.parent}`;
+        badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
+        if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
+        cell.appendChild(badge);
+      }
     }
 
     cell.onclick = () => window.toggleDayOverride(dateKey);
@@ -322,11 +324,13 @@ function renderList() {
 
     if (date >= startDateA) {
       const status = getParentForDate(date);
-      const badge = document.createElement('div');
-      badge.className = `badge ${status.parent}`;
-      badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
-      if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
-      right.appendChild(badge);
+      if (status.parent) {
+        const badge = document.createElement('div');
+        badge.className = `badge ${status.parent}`;
+        badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
+        if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
+        cell.appendChild(badge);
+      }
     }
 
     const noteBtn = document.createElement('button');
@@ -357,8 +361,9 @@ window.importFromCSV = function(event) {
     let importedNote = 0;
 
     let targetYear = 2026;
-    let targetMonth = 1; 
+    let targetMonth = 1; // Default: Febbraio (0-based)
 
+    // Individua Mese e Anno dalla prima riga (es. "febbraio 2026")
     if (lines[0] && lines[0][0]) {
       const headerStr = lines[0][0].toLowerCase();
       const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
@@ -371,13 +376,19 @@ window.importFromCSV = function(event) {
       if (yearMatch) targetYear = parseInt(yearMatch[0]);
     }
 
+    // Mappa delle colonne nel CSV per i giorni della settimana (Lun=0, Mar=2, Mer=4, Gio=6, Ven=8, Sab=10, Dom=18)
+    const dayColumns = [0, 2, 4, 6, 8, 10, 18];
+
     for (let r = 0; r < lines.length; r++) {
       const row = lines[r];
 
-      for (let c = 0; c < row.length; c++) {
+      dayColumns.forEach(c => {
+        if (c >= row.length) return;
+
         const val = row[c] ? row[c].trim() : '';
         const dayNum = parseInt(val);
 
+        // Se la cella contiene solo il numero del giorno (1-31)
         if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31 && val === String(dayNum)) {
           
           const mStr = String(targetMonth + 1).padStart(2, '0');
@@ -385,34 +396,36 @@ window.importFromCSV = function(event) {
           const dateKey = `${targetYear}-${mStr}-${dStr}`;
 
           let noteList = [];
+          let detectedParent = null;
 
-          for (let offset = 1; offset <= 5; offset++) {
+          // Analizza fino a 6 righe sotto il numero del giorno
+          for (let offset = 1; offset <= 6; offset++) {
             if (r + offset >= lines.length) break;
 
-            [c, c + 1].forEach(colIdx => {
-              if (colIdx >= lines[r + offset].length) return;
+            const subVal = lines[r + offset][c] ? lines[r + offset][c].trim() : '';
+            const lowerSubVal = subVal.toLowerCase();
 
-              const subVal = lines[r + offset][colIdx] ? lines[r + offset][colIdx].trim() : '';
-              const lowerSubVal = subVal.toLowerCase();
+            if (!subVal) continue;
 
-              if (!subVal) return;
-
-              if (lowerSubVal === 'con me') {
-                overrides[dateKey] = 'papa';
-                importedTurni++;
-              } else if (lowerSubVal === 'con mamma') {
-                overrides[dateKey] = 'mamma';
-                importedTurni++;
-              } 
-              else if (
-                !['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica', 'note'].includes(lowerSubVal) &&
-                isNaN(Number(subVal))
-              ) {
-                if (!noteList.includes(subVal)) noteList.push(subVal);
-              }
-            });
+            if (lowerSubVal === 'con me') {
+              detectedParent = 'papa';
+            } else if (lowerSubVal === 'con mamma') {
+              detectedParent = 'mamma';
+            } else if (
+              !['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica', 'note'].includes(lowerSubVal) &&
+              isNaN(Number(subVal))
+            ) {
+              if (!noteList.includes(subVal)) noteList.push(subVal);
+            }
           }
 
+          // Assegna il turno se trovato
+          if (detectedParent) {
+            overrides[dateKey] = detectedParent;
+            importedTurni++;
+          }
+
+          // Assegna la nota se trovata
           if (noteList.length > 0) {
             notes[dateKey] = {
               text: noteList.join(' - '),
@@ -421,15 +434,19 @@ window.importFromCSV = function(event) {
             importedNote++;
           }
         }
-      }
+      });
     }
+
+    // Aggiorna la vista corrente sul mese importato
+    currentDate = new Date(targetYear, targetMonth, 1);
 
     saveDataToFirestore();
     render();
 
-    alert(`Importazione CSV completata!\n- Turni registrati: ${importedTurni}\n- Note/Eventi salvati: ${importedNote}`);
+    alert(`Importazione CSV completata per ${targetYear}!\n- Turni registrati: ${importedTurni}\n- Note/Eventi salvati: ${importedNote}`);
   };
 
+  // Legge il CSV in codifica ISO-8859-1 (Latin-1) per gestire correttamente i caratteri accentati
   reader.readAsText(file, 'ISO-8859-1');
 };
 
