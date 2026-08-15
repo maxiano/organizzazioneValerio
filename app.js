@@ -361,36 +361,25 @@ window.importFromCSV = function(event) {
     let importedNote = 0;
 
     let targetYear = 2026;
-    let targetMonth = 1; // Default: Febbraio (0-based)
+    let targetMonth = 1; // 1 = Febbraio (0-based: Gen=0, Feb=1, Mar=2)
 
-    // Individua Mese e Anno dalla prima riga (es. "febbraio 2026")
-    if (lines[0] && lines[0][0]) {
-      const headerStr = lines[0][0].toLowerCase();
-      const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
-      
-      monthNames.forEach((m, idx) => {
-        if (headerStr.includes(m)) targetMonth = idx;
-      });
-
-      const yearMatch = headerStr.match(/\d{4}/);
-      if (yearMatch) targetYear = parseInt(yearMatch[0]);
-    }
-
-    // Mappa delle colonne nel CSV per i giorni della settimana (Lun=0, Mar=2, Mer=4, Gio=6, Ven=8, Sab=10, Dom=18)
-    const dayColumns = [0, 2, 4, 6, 8, 10, 18];
-
+    // Cerca le righe contenenti i numeri dei giorni
     for (let r = 0; r < lines.length; r++) {
       const row = lines[r];
 
-      dayColumns.forEach(c => {
-        if (c >= row.length) return;
-
+      for (let c = 0; c < row.length; c++) {
         const val = row[c] ? row[c].trim() : '';
         const dayNum = parseInt(val);
 
-        // Se la cella contiene solo il numero del giorno (1-31)
+        // Se trova un numero giorno valido (1-31)
         if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31 && val === String(dayNum)) {
-          
+
+          // Filtra il '1' di Marzo alla fine della griglia di Febbraio
+          if (r > 30 && dayNum === 1) continue;
+
+          // Esclude i giorni di Gennaio (26-31) presenti prima del giorno 1 di Febbraio
+          if (r === 9 && dayNum > 20) continue;
+
           const mStr = String(targetMonth + 1).padStart(2, '0');
           const dStr = String(dayNum).padStart(2, '0');
           const dateKey = `${targetYear}-${mStr}-${dStr}`;
@@ -398,7 +387,7 @@ window.importFromCSV = function(event) {
           let noteList = [];
           let detectedParent = null;
 
-          // Analizza fino a 6 righe sotto il numero del giorno
+          // Scansiona fino a 6 righe sottostanti per leggere 'con me' / 'con mamma' e le note
           for (let offset = 1; offset <= 6; offset++) {
             if (r + offset >= lines.length) break;
 
@@ -419,13 +408,13 @@ window.importFromCSV = function(event) {
             }
           }
 
-          // Assegna il turno se trovato
+          // Salva l'assegnazione nel database degli overrides
           if (detectedParent) {
             overrides[dateKey] = detectedParent;
             importedTurni++;
           }
 
-          // Assegna la nota se trovata
+          // Salva le note/eventi
           if (noteList.length > 0) {
             notes[dateKey] = {
               text: noteList.join(' - '),
@@ -434,19 +423,18 @@ window.importFromCSV = function(event) {
             importedNote++;
           }
         }
-      });
+      }
     }
 
-    // Aggiorna la vista corrente sul mese importato
+    // Imposta la vista del calendario direttamente su Febbraio 2026
     currentDate = new Date(targetYear, targetMonth, 1);
 
     saveDataToFirestore();
     render();
 
-    alert(`Importazione CSV completata per ${targetYear}!\n- Turni registrati: ${importedTurni}\n- Note/Eventi salvati: ${importedNote}`);
+    alert(`Importazione completata con successo!\n- Turni salvati: ${importedTurni}\n- Note/Eventi salvati: ${importedNote}`);
   };
 
-  // Legge il CSV in codifica ISO-8859-1 (Latin-1) per gestire correttamente i caratteri accentati
   reader.readAsText(file, 'ISO-8859-1');
 };
 
