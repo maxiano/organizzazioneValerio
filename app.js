@@ -344,6 +344,80 @@ function renderList() {
   }
 }
 
+window.importFromExcel = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = new Uint8Array(e.target.result);
+    // cellDates: true trasforma i valori data di Excel in oggetti Date JS
+    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+
+    let importedCount = 0;
+
+    // Scansiona tutti i fogli del file (1..12 o nomi mesi)
+    workbook.SheetNames.forEach(sheetName => {
+      const worksheet = workbook.Sheets[sheetName];
+      const range = XLSX.utils.decode_range(worksheet['!ref']);
+
+      // Mappa temporanea per collegare la colonna della griglia alla data corrente
+      let columnToDate = {};
+
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = worksheet[cellAddress];
+
+          if (!cell || cell.v === undefined || cell.v === null) continue;
+
+          // Check if cell is a Date object or date-formatted string
+          if (cell.v instanceof Date) {
+            const d = cell.v;
+            // Normalizza la data in stringa YYYY-MM-DD (usando UTC per evitare shift di fuso orario)
+            const year = d.getUTCFullYear();
+            const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(d.getUTCDate()).padStart(2, '0');
+            const dateKey = `${year}-${month}-${day}`;
+
+            // Memorizza che questa colonna fa riferimento a questa data
+            columnToDate[C] = dateKey;
+          } else {
+            const val = String(cell.v).trim();
+            const lowerVal = val.toLowerCase();
+            const dateKey = columnToDate[C];
+
+            if (dateKey) {
+              // Assegnazione turno
+              if (lowerVal === 'con me') {
+                overrides[dateKey] = 'papa';
+                importedCount++;
+              } else if (lowerVal === 'con mamma') {
+                overrides[dateKey] = 'mamma';
+                importedCount++;
+              } 
+              // Note o eventi personali (es. "ritiro", "cambio", ecc.)
+              else if (val.length > 0 && !['l','m','g','v','s','d'].includes(lowerVal)) {
+                notes[dateKey] = { text: val, category: 'generico' };
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Salva i dati e aggiorna l'interfaccia
+    if (typeof saveDataToFirestore === 'function') {
+      saveDataToFirestore();
+    }
+    
+    renderCalendar();
+    alert(`Importazione completata! Aggiornati ${importedCount} giorni dal file Excel.`);
+  };
+
+  reader.readAsArrayBuffer(file);
+};
+
 window.exportToExcel = function() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
