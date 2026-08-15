@@ -351,18 +351,19 @@ window.importFromExcel = function(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const data = new Uint8Array(e.target.result);
-    // cellDates: true trasforma i valori data di Excel in oggetti Date JS
+    // cellDates: true converte le date native di Excel mantenendo l'anno reale (2025/2026)
     const workbook = XLSX.read(data, { type: 'array', cellDates: true });
 
     let importedCount = 0;
 
-    // Scansiona tutti i fogli del file (1..12 o nomi mesi)
     workbook.SheetNames.forEach(sheetName => {
       const worksheet = workbook.Sheets[sheetName];
-      const range = XLSX.utils.decode_range(worksheet['!ref']);
+      if (!worksheet['!ref']) return;
 
-      // Mappa temporanea per collegare la colonna della griglia alla data corrente
-      let columnToDate = {};
+      const range = XLSX.utils.decode_range(worksheet['!ref']);
+      
+      // Mappa delle date attiva solo per il blocco di righe corrente
+      let cellToDateMap = {};
 
       for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = range.s.c; C <= range.e.c; ++C) {
@@ -371,33 +372,32 @@ window.importFromExcel = function(event) {
 
           if (!cell || cell.v === undefined || cell.v === null) continue;
 
-          // Check if cell is a Date object or date-formatted string
+          // Se la cella contiene un oggetto Date valido (con anno 2025 o 2026)
           if (cell.v instanceof Date) {
             const d = cell.v;
-            // Normalizza la data in stringa YYYY-MM-DD (usando UTC per evitare shift di fuso orario)
+            // Normalizzazione in UTC per evitare sfasamenti di fuso orario
             const year = d.getUTCFullYear();
             const month = String(d.getUTCMonth() + 1).padStart(2, '0');
             const day = String(d.getUTCDate()).padStart(2, '0');
             const dateKey = `${year}-${month}-${day}`;
 
-            // Memorizza che questa colonna fa riferimento a questa data
-            columnToDate[C] = dateKey;
+            // Associa la data specifica alle righe sottostanti dello stesso blocco
+            for (let offset = 1; offset <= 4; offset++) {
+              cellToDateMap[`${R + offset}_${C}`] = dateKey;
+            }
           } else {
             const val = String(cell.v).trim();
             const lowerVal = val.toLowerCase();
-            const dateKey = columnToDate[C];
+            const dateKey = cellToDateMap[`${R}_${C}`];
 
             if (dateKey) {
-              // Assegnazione turno
               if (lowerVal === 'con me') {
                 overrides[dateKey] = 'papa';
                 importedCount++;
               } else if (lowerVal === 'con mamma') {
                 overrides[dateKey] = 'mamma';
                 importedCount++;
-              } 
-              // Note o eventi personali (es. "ritiro", "cambio", ecc.)
-              else if (val.length > 0 && !['l','m','g','v','s','d'].includes(lowerVal)) {
+              } else if (val.length > 0 && !['l','m','g','v','s','d'].includes(lowerVal)) {
                 notes[dateKey] = { text: val, category: 'generico' };
               }
             }
@@ -406,13 +406,15 @@ window.importFromExcel = function(event) {
       }
     });
 
-    // Salva i dati e aggiorna l'interfaccia
     if (typeof saveDataToFirestore === 'function') {
       saveDataToFirestore();
     }
     
-    renderCalendar();
-    alert(`Importazione completata! Aggiornati ${importedCount} giorni dal file Excel.`);
+    if (typeof renderCalendar === 'function') {
+      renderCalendar();
+    }
+
+    alert(`Importazione completata con successo! Aggiornati ${importedCount} giorni per la stagione 2025/2026.`);
   };
 
   reader.readAsArrayBuffer(file);
