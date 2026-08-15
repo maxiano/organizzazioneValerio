@@ -344,6 +344,106 @@ function renderList() {
   }
 }
 
+window.importFromCSV = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    // Divide il file CSV in righe
+    const lines = text.split(/\r?\n/).map(line => line.split(';'));
+
+    let importedTurni = 0;
+    let importedNote = 0;
+
+    // 1. Determina il mese e l'anno dal foglio (es. "febbraio 2026")
+    let targetYear = 2026;
+    let targetMonth = 1; // Mese di Febbraio (0-based: 1 = Febbraio)
+
+    if (lines[0] && lines[0][0]) {
+      const headerStr = lines[0][0].toLowerCase();
+      const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+      
+      monthNames.forEach((m, idx) => {
+        if (headerStr.includes(m)) targetMonth = idx;
+      });
+
+      const yearMatch = headerStr.match(/\d{4}/);
+      if (yearMatch) targetYear = parseInt(yearMatch[0]);
+    }
+
+    // 2. Scansiona le righe per trovare le celle numeriche dei giorni (1-31)
+    for (let r = 0; r < lines.length; r++) {
+      const row = lines[r];
+
+      for (let c = 0; c < row.length; c++) {
+        const val = row[c] ? row[c].trim() : '';
+        const dayNum = parseInt(val);
+
+        // Se trova un numero di giorno valido
+        if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31 && val === String(dayNum)) {
+          
+          // Costruisce la chiave data YYYY-MM-DD
+          const mStr = String(targetMonth + 1).padStart(2, '0');
+          const dStr = String(dayNum).padStart(2, '0');
+          const dateKey = `${targetYear}-${mStr}-${dStr}`;
+
+          let noteList = [];
+
+          // Analizza le 5 righe sottostanti nella colonna principale e adiacente
+          for (let offset = 1; offset <= 5; offset++) {
+            if (r + offset >= lines.length) break;
+
+            [c, c + 1].forEach(colIdx => {
+              if (colIdx >= lines[r + offset].length) return;
+
+              const subVal = lines[r + offset][colIdx] ? lines[r + offset][colIdx].trim() : '';
+              const lowerSubVal = subVal.toLowerCase();
+
+              if (!subVal) return;
+
+              // Rilevamento Assegnazione Turno
+              if (lowerSubVal === 'con me') {
+                overrides[dateKey] = 'papa';
+                importedTurni++;
+              } else if (lowerSubVal === 'con mamma') {
+                overrides[dateKey] = 'mamma';
+                importedTurni++;
+              } 
+              // Rilevamento Note/Eventi (es. "cambio per operazione")
+              else if (
+                !['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica', 'note'].includes(lowerSubVal) &&
+                isNaN(Number(subVal))
+              ) {
+                if (!noteList.includes(subVal)) noteList.push(subVal);
+              }
+            });
+          }
+
+          // Salva la nota se presente
+          if (noteList.length > 0) {
+            notes[dateKey] = {
+              text: noteList.join(' - '),
+              category: 'generico'
+            };
+            importedNote++;
+          }
+        }
+      }
+    }
+
+    // Salva su Firebase e aggiorna l'interfaccia
+    saveDataToFirestore();
+    render();
+
+    alert(`Importazione CSV completata!\n- Turni registrati: ${importedTurni}\n- Note/Eventi salvati: ${importedNote}`);
+  };
+
+  // Legge il file CSV con codifica UTF-8 / ISO-8859-1
+  reader.readAsText(file, 'ISO-8859-1');
+};
+
 window.importFromExcel = function(event) {
   const file = event.target.files[0];
   if (!file) return;
