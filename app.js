@@ -10,6 +10,7 @@ const firebaseConfig = {
   appId: "1:596812330710:web:03ad86e55032728cd07b77",
   measurementId: "G-36RKDPZZ3T"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const docRef = doc(db, "turni_valerio", "overrides");
@@ -17,17 +18,24 @@ const docRef = doc(db, "turni_valerio", "overrides");
 let overrides = {};
 let notes = {};
 let activeDateKeyForNote = null;
-let currentView = 'grid'; // 'grid' oppure 'list'
+let currentView = 'grid'; 
 
-let currentDate = new Date(2026, 8, 1); // Settembre 2026
+let currentDate = new Date(2026, 1, 1); // Default: Febbraio 2026
 const startDateA = new Date(2026, 8, 7); // Lunedì 7 Settembre 2026
 
-// Inizializzazione Tema Scuro
-if (localStorage.getItem('theme') === 'dark') {
-  document.documentElement.setAttribute('data-theme', 'dark');
-  const themeBtn = document.getElementById('themeToggleBtn');
-  if (themeBtn) themeBtn.textContent = '☀️ Chiaro';
-}
+// -------------------------------------------------------------
+// FUNZIONI GLOBALI (Registrate subito per evitare ReferenceError)
+// -------------------------------------------------------------
+
+window.resetOverrides = async function() {
+  if (confirm("Vuoi cancellare tutti i cambi manuali e le note salvate?")) {
+    overrides = {};
+    notes = {};
+    await saveDataToFirestore();
+    render();
+    alert("Tutti i cambi e le note sono stati azzerati!");
+  }
+};
 
 window.toggleDarkMode = function() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -42,96 +50,6 @@ window.toggleDarkMode = function() {
     if (themeBtn) themeBtn.textContent = '☀️ Chiaro';
   }
 };
-
-// Sincronizzazione Firestore
-onSnapshot(docRef, (docSnap) => {
-  if (docSnap.exists()) {
-    const data = docSnap.data();
-    overrides = data.data || {};
-    notes = data.notes || {};
-  } else {
-    overrides = {};
-    notes = {};
-  }
-  render();
-});
-
-async function saveDataToFirestore() {
-  try {
-    await setDoc(docRef, { data: overrides, notes: notes });
-  } catch (error) {
-    console.error("Errore Firestore:", error);
-  }
-}
-
-function formatDateKey(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function getStandardParent(date) {
-  const msPerDay = 86400000;
-  const daysDiff = Math.floor((date - startDateA) / msPerDay);
-  if (daysDiff < 0) return null;
-
-  const cycleDay = (daysDiff % 14 + 14) % 14; 
-  if (cycleDay === 0 || cycleDay === 3 || cycleDay === 5 || cycleDay === 6) return 'papa';
-  if (cycleDay === 8 || cycleDay === 10) return 'papa';
-
-  return 'mamma';
-}
-
-function getParentForDate(date) {
-  const dateKey = formatDateKey(date);
-  if (overrides[dateKey]) {
-    return { parent: overrides[dateKey], isOverride: true };
-  }
-  return { parent: getStandardParent(date), isOverride: false };
-}
-
-window.toggleDayOverride = function(dateKey) {
-  const date = new Date(dateKey + 'T00:00:00');
-
-  const currentStatus = getParentForDate(date);
-  if (!currentStatus.isOverride && currentStatus.parent) {
-    overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
-  } else if (currentStatus.isOverride) {
-    overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
-  } else {
-    overrides[dateKey] = 'papa';
-  }
-  saveDataToFirestore();
-};
-
-
-function setupDateSelectors() {
-  const monthSelect = document.getElementById('monthSelect');
-  const yearSelect = document.getElementById('yearSelect');
-
-  if (!monthSelect || !yearSelect) return;
-
-  monthSelect.innerHTML = '';
-  const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
-  monthNames.forEach((m, idx) => {
-    const opt = document.createElement('option');
-    opt.value = idx;
-    opt.textContent = m;
-    if (idx === currentDate.getMonth()) opt.selected = true;
-    monthSelect.appendChild(opt);
-  });
-
-  yearSelect.innerHTML = '';
-  const currentYear = currentDate.getFullYear();
-  for (let y = currentYear - 2; y <= currentYear + 3; y++) {
-    const opt = document.createElement('option');
-    opt.value = y;
-    opt.textContent = y;
-    if (y === currentYear) opt.selected = true;
-    yearSelect.appendChild(opt);
-  }
-}
 
 window.onDateSelectChange = function() {
   const m = parseInt(document.getElementById('monthSelect').value);
@@ -155,6 +73,20 @@ window.switchView = function(view) {
   render();
 };
 
+window.toggleDayOverride = function(dateKey) {
+  const date = new Date(dateKey + 'T00:00:00');
+  const currentStatus = getParentForDate(date);
+  
+  if (!currentStatus.isOverride && currentStatus.parent) {
+    overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
+  } else if (currentStatus.isOverride) {
+    overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
+  } else {
+    overrides[dateKey] = 'papa';
+  }
+  saveDataToFirestore();
+};
+
 window.openNoteModal = function(dateKey, event) {
   event.stopPropagation();
   activeDateKeyForNote = dateKey;
@@ -173,7 +105,9 @@ window.openNoteModal = function(dateKey, event) {
     categorySelect.value = notes[dateKey].category || 'generico';
     btnDelete.style.display = 'inline-flex';
   } else {
-    input.value = ''; categorySelect.value = 'allenamento'; btnDelete.style.display = 'none';
+    input.value = ''; 
+    categorySelect.value = 'allenamento'; 
+    btnDelete.style.display = 'none';
   }
 
   modal.classList.add('active');
@@ -203,6 +137,94 @@ window.deleteCurrentNote = function() {
   }
   closeNoteModal();
 };
+
+// -------------------------------------------------------------
+// INIZIALIZZAZIONE & SINCRONIZZAZIONE FIRESTORE
+// -------------------------------------------------------------
+
+if (localStorage.getItem('theme') === 'dark') {
+  document.documentElement.setAttribute('data-theme', 'dark');
+  const themeBtn = document.getElementById('themeToggleBtn');
+  if (themeBtn) themeBtn.textContent = '☀️ Chiaro';
+}
+
+onSnapshot(docRef, (docSnap) => {
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    overrides = data.data || {};
+    notes = data.notes || {};
+  } else {
+    overrides = {};
+    notes = {};
+  }
+  render();
+});
+
+async function saveDataToFirestore() {
+  try {
+    await setDoc(docRef, { data: overrides, notes: notes });
+  } catch (error) {
+    console.error("Errore Firestore:", error);
+  }
+}
+
+// -------------------------------------------------------------
+// LOGICA CALENDARIO
+// -------------------------------------------------------------
+
+function formatDateKey(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getStandardParent(date) {
+  const msPerDay = 86400000;
+  const daysDiff = Math.floor((date - startDateA) / msPerDay);
+  if (daysDiff < 0) return null;
+
+  const cycleDay = (daysDiff % 14 + 14) % 14; 
+  if (cycleDay === 0 || cycleDay === 3 || cycleDay === 5 || cycleDay === 6) return 'papa';
+  if (cycleDay === 8 || cycleDay === 10) return 'papa';
+
+  return 'mamma';
+}
+
+function getParentForDate(date) {
+  const dateKey = formatDateKey(date);
+  if (overrides[dateKey]) {
+    return { parent: overrides[dateKey], isOverride: true };
+  }
+  return { parent: getStandardParent(date), isOverride: false };
+}
+
+function setupDateSelectors() {
+  const monthSelect = document.getElementById('monthSelect');
+  const yearSelect = document.getElementById('yearSelect');
+
+  if (!monthSelect || !yearSelect) return;
+
+  monthSelect.innerHTML = '';
+  const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+  monthNames.forEach((m, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = m;
+    if (idx === currentDate.getMonth()) opt.selected = true;
+    monthSelect.appendChild(opt);
+  });
+
+  yearSelect.innerHTML = '';
+  const currentYear = currentDate.getFullYear();
+  for (let y = currentYear - 2; y <= currentYear + 3; y++) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    if (y === currentYear) opt.selected = true;
+    yearSelect.appendChild(opt);
+  }
+}
 
 function render() {
   setupDateSelectors();
@@ -267,7 +289,6 @@ function renderGrid() {
       cell.appendChild(eventBadge);
     }
 
-    // MODIFICA QUI: Rimosso il blocco "if (date >= startDateA)"
     const status = getParentForDate(date);
     if (status && status.parent) {
       const badge = document.createElement('div');
@@ -316,7 +337,6 @@ function renderList() {
     const right = document.createElement('div');
     right.className = 'list-item-right';
 
-    // MODIFICA QUI: Rimosso il blocco "if (date >= startDateA)"
     const status = getParentForDate(date);
     if (status && status.parent) {
       const badge = document.createElement('div');
@@ -341,6 +361,10 @@ function renderList() {
   }
 }
 
+// -------------------------------------------------------------
+// IMPORT & EXPORT
+// -------------------------------------------------------------
+
 window.importFromCSV = function(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -354,9 +378,8 @@ window.importFromCSV = function(event) {
     let importedNote = 0;
 
     let targetYear = 2026;
-    let targetMonth = 1; // 1 = Febbraio (0-based: Gen=0, Feb=1, Mar=2)
+    let targetMonth = 1; // Febbraio (0-based)
 
-    // Cerca le righe contenenti i numeri dei giorni
     for (let r = 0; r < lines.length; r++) {
       const row = lines[r];
 
@@ -364,13 +387,9 @@ window.importFromCSV = function(event) {
         const val = row[c] ? row[c].trim() : '';
         const dayNum = parseInt(val);
 
-        // Se trova un numero giorno valido (1-31)
         if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31 && val === String(dayNum)) {
 
-          // Filtra il '1' di Marzo alla fine della griglia di Febbraio
           if (r > 30 && dayNum === 1) continue;
-
-          // Esclude i giorni di Gennaio (26-31) presenti prima del giorno 1 di Febbraio
           if (r === 9 && dayNum > 20) continue;
 
           const mStr = String(targetMonth + 1).padStart(2, '0');
@@ -380,34 +399,35 @@ window.importFromCSV = function(event) {
           let noteList = [];
           let detectedParent = null;
 
-          // Scansiona fino a 6 righe sottostanti per leggere 'con me' / 'con mamma' e le note
           for (let offset = 1; offset <= 6; offset++) {
             if (r + offset >= lines.length) break;
 
-            const subVal = lines[r + offset][c] ? lines[r + offset][c].trim() : '';
-            const lowerSubVal = subVal.toLowerCase();
+            [c, c + 1].forEach(colIdx => {
+              if (colIdx >= lines[r + offset].length) return;
 
-            if (!subVal) continue;
+              const cellText = lines[r + offset][colIdx] ? lines[r + offset][colIdx].trim().replace(/\s+/g, ' ') : '';
+              const lowerText = cellText.toLowerCase();
 
-            if (lowerSubVal === 'con me') {
-              detectedParent = 'papa';
-            } else if (lowerSubVal === 'con mamma') {
-              detectedParent = 'mamma';
-            } else if (
-              !['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica', 'note'].includes(lowerSubVal) &&
-              isNaN(Number(subVal))
-            ) {
-              if (!noteList.includes(subVal)) noteList.push(subVal);
-            }
+              if (!cellText) return;
+
+              if (lowerText.includes('con me') || lowerText.includes('con papa') || lowerText === 'me') {
+                detectedParent = 'papa';
+              } else if (lowerText.includes('con mamma') || lowerText === 'mamma') {
+                detectedParent = 'mamma';
+              } else if (
+                !['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica', 'note'].includes(lowerText) &&
+                isNaN(Number(cellText))
+              ) {
+                if (!noteList.includes(cellText)) noteList.push(cellText);
+              }
+            });
           }
 
-          // Salva l'assegnazione nel database degli overrides
           if (detectedParent) {
             overrides[dateKey] = detectedParent;
             importedTurni++;
           }
 
-          // Salva le note/eventi
           if (noteList.length > 0) {
             notes[dateKey] = {
               text: noteList.join(' - '),
@@ -419,9 +439,7 @@ window.importFromCSV = function(event) {
       }
     }
 
-    // Imposta la vista del calendario direttamente su Febbraio 2026
     currentDate = new Date(targetYear, targetMonth, 1);
-
     saveDataToFirestore();
     render();
 
@@ -429,15 +447,6 @@ window.importFromCSV = function(event) {
   };
 
   reader.readAsText(file, 'ISO-8859-1');
-};
-
-window.resetOverrides = function() {
-  if (confirm("Vuoi cancellare tutti i cambi manuali e le note salvate?")) {
-    overrides = {};
-    notes = {};
-    saveDataToFirestore();
-    render();
-  }
 };
 
 window.exportToExcel = function() {
@@ -458,8 +467,8 @@ window.exportToExcel = function() {
     let cambio = "No";
     let notaText = "";
 
-    if (date >= startDateA) {
-      const status = getParentForDate(date);
+    const status = getParentForDate(date);
+    if (status && status.parent) {
       genitore = status.parent === 'papa' ? 'Papà' : 'Mamma';
       if (status.isOverride) cambio = "Sì (Modificato)";
     }
