@@ -23,8 +23,12 @@
 </head>
 <body>
 
-  <h1>Turni Valerio</h1>
-  <div class="subhead">Tocca un giorno per il turno, o usa 📝 per aggiungere note ed eventi</div>
+  <div class="top-bar">
+    <h1>Turni Valerio</h1>
+    <button id="themeToggleBtn" class="btn-theme" onclick="toggleDarkMode()">🌙 Scuro</button>
+  </div>
+
+  <div class="subhead">Tocca un giorno per il turno, o usa 📝 per note ed eventi</div>
 
   <div class="legend">
     <div class="legend-item"><span class="dot papa"></span> Con Te</div>
@@ -37,13 +41,25 @@
     <button class="btn-reset" onclick="resetOverrides()">🔄 Ripristina Standard</button>
   </div>
 
+  <!-- SELETTORE VISTA (GRIGLIA / LISTA) -->
+  <div class="view-toggle">
+    <button id="btnViewGrid" class="btn-toggle active" onclick="switchView('grid')">📅 Griglia</button>
+    <button id="btnViewList" class="btn-toggle" onclick="switchView('list')">📋 Lista Agenda</button>
+  </div>
+
+  <!-- CONTROLLI MESE / ANNO RAPIDI -->
   <div class="controls">
     <button onclick="changeMonth(-1)">&lt; Prec</button>
-    <div class="month-title" id="monthTitle"></div>
+    <div class="month-selectors">
+      <select id="monthSelect" onchange="onDateSelectChange()"></select>
+      <select id="yearSelect" onchange="onDateSelectChange()"></select>
+    </div>
     <button onclick="changeMonth(1)">Succ &gt;</button>
   </div>
 
+  <!-- CONTENITORI PER LE DUE VISTE -->
   <div class="grid" id="calendarGrid"></div>
+  <div class="list-view" id="calendarList" style="display: none;"></div>
 
   <!-- MODALE PER GESTIONE NOTE ED EVENTI -->
   <div id="noteModal" class="modal-overlay">
@@ -60,7 +76,7 @@
       </select>
 
       <label for="noteTextInput">Descrizione / Nota:</label>
-      <input type="text" id="noteTextInput" placeholder="Es. Partita ore 15:00, Visita dentistica..." maxlength="40">
+      <input type="text" id="noteTextInput" placeholder="Es. Partita ore 15:00..." maxlength="40">
 
       <div class="modal-actions">
         <button class="btn-delete" id="btnDeleteNote" onclick="deleteCurrentNote()">Elimina Nota</button>
