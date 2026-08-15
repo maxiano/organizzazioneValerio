@@ -3,13 +3,12 @@ import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/f
 
 // Credenziali Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyAGEPZjO0DnXAR9wJpOqfui5hYgJAYcE-k",
-  authDomain: "gestione-valerio.firebaseapp.com",
-  projectId: "gestione-valerio",
-  storageBucket: "gestione-valerio.firebasestorage.app",
-  messagingSenderId: "596812330710",
-  appId: "1:596812330710:web:03ad86e55032728cd07b77",
-  measurementId: "G-36RKDPZZ3T"
+  apiKey: "IL_TUO_API_KEY",
+  authDomain: "IL_TUO_PROJECT_ID.firebaseapp.com",
+  projectId: "IL_TUO_PROJECT_ID",
+  storageBucket: "IL_TUO_PROJECT_ID.appspot.com",
+  messagingSenderId: "IL_TUO_SENDER_ID",
+  appId: "IL_TUO_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -17,27 +16,36 @@ const db = getFirestore(app);
 const docRef = doc(db, "turni_valerio", "overrides");
 
 let overrides = {};
+let notes = {};
+let activeDateKeyForNote = null;
+
 let currentDate = new Date(2026, 8, 1); // Settembre 2026
-const startDateA = new Date(2026, 8, 7); // Lunedì 7 Settembre 2026 (Inizio Settimana A)
+const startDateA = new Date(2026, 8, 7); // Lunedì 7 Settembre 2026
 
 // Sincronizzazione in tempo reale da Firestore
 onSnapshot(docRef, (docSnap) => {
   if (docSnap.exists()) {
-    overrides = docSnap.data().data || {};
+    const data = docSnap.data();
+    overrides = data.data || {};
+    notes = data.notes || {};
   } else {
     overrides = {};
+    notes = {};
   }
   renderCalendar();
 }, (error) => {
-  console.error("Errore di sincronizzazione con Firestore:", error);
+  console.error("Errore sincronizzazione Firestore:", error);
 });
 
-// Salva modifiche su Firestore
-async function saveOverridesToFirestore(updatedOverrides) {
+// Salva modifiche complessive su Firestore
+async function saveDataToFirestore() {
   try {
-    await setDoc(docRef, { data: updatedOverrides });
+    await setDoc(docRef, { 
+      data: overrides,
+      notes: notes 
+    });
   } catch (error) {
-    console.error("Errore durante il salvataggio su Firestore:", error);
+    console.error("Errore salvataggio su Firestore:", error);
   }
 }
 
@@ -55,9 +63,7 @@ function getStandardParent(date) {
   if (daysDiff < 0) return null;
 
   const cycleDay = (daysDiff % 14 + 14) % 14; 
-  // Settimana A (0-6): Lun(0), Giu(3), Sab(5), Dom(6) -> Papà
   if (cycleDay === 0 || cycleDay === 3 || cycleDay === 5 || cycleDay === 6) return 'papa';
-  // Settimana B (7-13): Mar(8), Giu(10) -> Papà
   if (cycleDay === 8 || cycleDay === 10) return 'papa';
 
   return 'mamma';
@@ -65,35 +71,33 @@ function getStandardParent(date) {
 
 function getParentForDate(date) {
   const dateKey = formatDateKey(date);
-  
   if (overrides[dateKey]) {
     return { parent: overrides[dateKey], isOverride: true };
   }
-  
-  const standard = getStandardParent(date);
-  return { parent: standard, isOverride: false };
+  return { parent: getStandardParent(date), isOverride: false };
 }
 
-// Esposte a livello window per gli Handler HTML (onclick)
-window.toggleDayOverride = function(dateKey, standardParent) {
+// TOGGLE CAMBIO TURNO
+window.toggleDayOverride = function(dateKey) {
   const date = new Date(dateKey + 'T00:00:00');
   if (date < startDateA) return;
 
   const currentStatus = getParentForDate(date);
-  const newOverrides = { ...overrides };
 
   if (!currentStatus.isOverride) {
-    newOverrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
+    overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
   } else {
-    delete newOverrides[dateKey];
+    delete overrides[dateKey];
   }
 
-  saveOverridesToFirestore(newOverrides);
+  saveDataToFirestore();
 };
 
 window.resetOverrides = function() {
-  if (confirm("Vuoi cancellare tutti i cambi manuali e ripristinare il calendario standard?")) {
-    saveOverridesToFirestore({});
+  if (confirm("Vuoi cancellare tutti i cambi manuali e le note salvate?")) {
+    overrides = {};
+    notes = {};
+    saveDataToFirestore();
   }
 };
 
@@ -102,6 +106,63 @@ window.changeMonth = function(delta) {
   renderCalendar();
 };
 
+/* --- GESTIONE MODALE NOTE ED EVENTI --- */
+window.openNoteModal = function(dateKey, event) {
+  event.stopPropagation(); // Evita l'inversione del turno al click sull'icona
+  activeDateKeyForNote = dateKey;
+  
+  const modal = document.getElementById('noteModal');
+  const modalTitle = document.getElementById('modalDateTitle');
+  const input = document.getElementById('noteTextInput');
+  const categorySelect = document.getElementById('noteCategory');
+  const btnDelete = document.getElementById('btnDeleteNote');
+
+  const [y, m, d] = dateKey.split('-');
+  modalTitle.textContent = `Nota / Evento del ${d}/${m}/${y}`;
+
+  if (notes[dateKey]) {
+    input.value = notes[dateKey].text || '';
+    categorySelect.value = notes[dateKey].category || 'generico';
+    btnDelete.style.display = 'inline-flex';
+  } else {
+    input.value = '';
+    categorySelect.value = 'allenamento';
+    btnDelete.style.display = 'none';
+  }
+
+  modal.classList.add('active');
+};
+
+window.closeNoteModal = function() {
+  document.getElementById('noteModal').classList.remove('active');
+  activeDateKeyForNote = null;
+};
+
+window.saveCurrentNote = function() {
+  if (!activeDateKeyForNote) return;
+
+  const text = document.getElementById('noteTextInput').value.trim();
+  const category = document.getElementById('noteCategory').value;
+
+  if (text) {
+    notes[activeDateKeyForNote] = { text, category };
+  } else {
+    delete notes[activeDateKeyForNote];
+  }
+
+  saveDataToFirestore();
+  closeNoteModal();
+};
+
+window.deleteCurrentNote = function() {
+  if (activeDateKeyForNote && notes[activeDateKeyForNote]) {
+    delete notes[activeDateKeyForNote];
+    saveDataToFirestore();
+  }
+  closeNoteModal();
+};
+
+/* --- ESPORTAZIONE EXCEL CON CONTEGGIO NOTE --- */
 window.exportToExcel = function() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -109,28 +170,32 @@ window.exportToExcel = function() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const data = [
-    ["Data", "Giorno", "Genitore con Valerio", "Note"]
+    ["Data", "Giorno", "Genitore con Valerio", "Cambio Turno", "Evento / Nota"]
   ];
 
   const daysOfWeek = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
 
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month, day);
+    const dateKey = formatDateKey(date);
     const dateStr = `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year}`;
     const dayName = daysOfWeek[date.getDay()];
     
     let genitore = "Non definito";
-    let nota = "";
+    let cambio = "No";
+    let notaText = "";
 
     if (date >= startDateA) {
       const status = getParentForDate(date);
       genitore = status.parent === 'papa' ? 'Papà' : 'Mamma';
-      if (status.isOverride) {
-        nota = "Cambio/Scambio concordato";
-      }
+      if (status.isOverride) cambio = "Sì (Modificato)";
     }
 
-    data.push([dateStr, dayName, genitore, nota]);
+    if (notes[dateKey]) {
+      notaText = `[${notes[dateKey].category.toUpperCase()}] ${notes[dateKey].text}`;
+    }
+
+    data.push([dateStr, dayName, genitore, cambio, notaText]);
   }
 
   const ws = XLSX.utils.aoa_to_sheet(data);
@@ -138,10 +203,7 @@ window.exportToExcel = function() {
   XLSX.utils.book_append_sheet(wb, ws, `${monthName} ${year}`);
 
   ws['!cols'] = [
-    { wch: 12 },
-    { wch: 12 },
-    { wch: 22 },
-    { wch: 25 }
+    { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 18 }, { wch: 35 }
   ];
 
   XLSX.writeFile(wb, `Turni_Valerio_${monthName}_${year}.xlsx`);
@@ -183,10 +245,33 @@ function renderCalendar() {
     const cell = document.createElement('div');
     cell.className = 'day-cell';
     
+    // Intestazione Cella (Numero Giorno + Tasto Nota)
+    const cellTop = document.createElement('div');
+    cellTop.className = 'cell-top';
+
     const dayNumber = document.createElement('span');
     dayNumber.textContent = day;
-    cell.appendChild(dayNumber);
+    cellTop.appendChild(dayNumber);
 
+    const noteBtn = document.createElement('button');
+    const hasNote = !!notes[dateKey];
+    noteBtn.className = `btn-note-trigger ${hasNote ? 'has-note' : ''}`;
+    noteBtn.innerHTML = hasNote ? '📝' : '➕';
+    noteBtn.onclick = (e) => window.openNoteModal(dateKey, e);
+    cellTop.appendChild(noteBtn);
+
+    cell.appendChild(cellTop);
+
+    // Contenuto Nota / Evento
+    if (notes[dateKey]) {
+      const eventBadge = document.createElement('div');
+      eventBadge.className = `event-badge ${notes[dateKey].category}`;
+      eventBadge.textContent = notes[dateKey].text;
+      eventBadge.title = notes[dateKey].text;
+      cell.appendChild(eventBadge);
+    }
+
+    // Badge Turno Genitore
     if (date >= startDateA) {
       const status = getParentForDate(date);
       const badge = document.createElement('div');
@@ -200,8 +285,10 @@ function renderCalendar() {
       }
 
       cell.appendChild(badge);
-      cell.onclick = () => window.toggleDayOverride(dateKey, getStandardParent(date));
     }
+
+    // Cliccando sulla cella si cambia il turno (escluso il pulsante nota)
+    cell.onclick = () => window.toggleDayOverride(dateKey);
 
     grid.appendChild(cell);
   }
