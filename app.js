@@ -1,16 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Credenziali Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyAGEPZjO0DnXAR9wJpOqfui5hYgJAYcE-k",
-  authDomain: "gestione-valerio.firebaseapp.com",
-  projectId: "gestione-valerio",
-  storageBucket: "gestione-valerio.firebasestorage.app",
-  messagingSenderId: "596812330710",
-  appId: "1:596812330710:web:03ad86e55032728cd07b77",
-  measurementId: "G-36RKDPZZ3T"
+  apiKey: "IL_TUO_API_KEY",
+  authDomain: "IL_TUO_PROJECT_ID.firebaseapp.com",
+  projectId: "IL_TUO_PROJECT_ID",
+  storageBucket: "IL_TUO_PROJECT_ID.appspot.com",
+  messagingSenderId: "IL_TUO_SENDER_ID",
+  appId: "IL_TUO_APP_ID"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const docRef = doc(db, "turni_valerio", "overrides");
@@ -18,11 +17,31 @@ const docRef = doc(db, "turni_valerio", "overrides");
 let overrides = {};
 let notes = {};
 let activeDateKeyForNote = null;
+let currentView = 'grid'; // 'grid' oppure 'list'
 
 let currentDate = new Date(2026, 8, 1); // Settembre 2026
 const startDateA = new Date(2026, 8, 7); // Lunedì 7 Settembre 2026
 
-// Sincronizzazione in tempo reale da Firestore
+// Inizializzazione Tema Scuro
+if (localStorage.getItem('theme') === 'dark') {
+  document.documentElement.setAttribute('data-theme', 'dark');
+  document.getElementById('themeToggleBtn').textContent = '☀️ Chiaro';
+}
+
+window.toggleDarkMode = function() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'light');
+    document.getElementById('themeToggleBtn').textContent = '🌙 Scuro';
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+    document.getElementById('themeToggleBtn').textContent = '☀️ Chiaro';
+  }
+};
+
+// Sincronizzazione Firestore
 onSnapshot(docRef, (docSnap) => {
   if (docSnap.exists()) {
     const data = docSnap.data();
@@ -32,20 +51,14 @@ onSnapshot(docRef, (docSnap) => {
     overrides = {};
     notes = {};
   }
-  renderCalendar();
-}, (error) => {
-  console.error("Errore sincronizzazione Firestore:", error);
+  render();
 });
 
-// Salva modifiche complessive su Firestore
 async function saveDataToFirestore() {
   try {
-    await setDoc(docRef, { 
-      data: overrides,
-      notes: notes 
-    });
+    await setDoc(docRef, { data: overrides, notes: notes });
   } catch (error) {
-    console.error("Errore salvataggio su Firestore:", error);
+    console.error("Errore Firestore:", error);
   }
 }
 
@@ -56,7 +69,6 @@ function formatDateKey(date) {
   return `${y}-${m}-${d}`;
 }
 
-// Rotazione standard
 function getStandardParent(date) {
   const msPerDay = 86400000;
   const daysDiff = Math.floor((date - startDateA) / msPerDay);
@@ -77,38 +89,78 @@ function getParentForDate(date) {
   return { parent: getStandardParent(date), isOverride: false };
 }
 
-// TOGGLE CAMBIO TURNO
 window.toggleDayOverride = function(dateKey) {
   const date = new Date(dateKey + 'T00:00:00');
   if (date < startDateA) return;
 
   const currentStatus = getParentForDate(date);
-
   if (!currentStatus.isOverride) {
     overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
   } else {
     delete overrides[dateKey];
   }
-
   saveDataToFirestore();
 };
 
 window.resetOverrides = function() {
   if (confirm("Vuoi cancellare tutti i cambi manuali e le note salvate?")) {
-    overrides = {};
-    notes = {};
+    overrides = {}; notes = {};
     saveDataToFirestore();
   }
 };
 
-window.changeMonth = function(delta) {
-  currentDate.setMonth(currentDate.getMonth() + delta);
-  renderCalendar();
+/* --- POPOLAMENTO MENU SELECT MESE / ANNO --- */
+function setupDateSelectors() {
+  const monthSelect = document.getElementById('monthSelect');
+  const yearSelect = document.getElementById('yearSelect');
+
+  monthSelect.innerHTML = '';
+  const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+  monthNames.forEach((m, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = m;
+    if (idx === currentDate.getMonth()) opt.selected = true;
+    monthSelect.appendChild(opt);
+  });
+
+  yearSelect.innerHTML = '';
+  const currentYear = currentDate.getFullYear();
+  for (let y = currentYear - 2; y <= currentYear + 3; y++) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    if (y === currentYear) opt.selected = true;
+    yearSelect.appendChild(opt);
+  }
+}
+
+window.onDateSelectChange = function() {
+  const m = parseInt(document.getElementById('monthSelect').value);
+  const y = parseInt(document.getElementById('yearSelect').value);
+  currentDate = new Date(y, m, 1);
+  render();
 };
 
-/* --- GESTIONE MODALE NOTE ED EVENTI --- */
+window.changeMonth = function(delta) {
+  currentDate.setMonth(currentDate.getMonth() + delta);
+  render();
+};
+
+/* --- VISTA LISTA / GRIGLIA --- */
+window.switchView = function(view) {
+  currentView = view;
+  document.getElementById('btnViewGrid').classList.toggle('active', view === 'grid');
+  document.getElementById('btnViewList').classList.toggle('active', view === 'list');
+  
+  document.getElementById('calendarGrid').style.display = view === 'grid' ? 'grid' : 'none';
+  document.getElementById('calendarList').style.display = view === 'list' ? 'flex' : 'none';
+  render();
+};
+
+/* --- MODALE NOTE --- */
 window.openNoteModal = function(dateKey, event) {
-  event.stopPropagation(); // Evita l'inversione del turno al click sull'icona
+  event.stopPropagation();
   activeDateKeyForNote = dateKey;
   
   const modal = document.getElementById('noteModal');
@@ -125,9 +177,7 @@ window.openNoteModal = function(dateKey, event) {
     categorySelect.value = notes[dateKey].category || 'generico';
     btnDelete.style.display = 'inline-flex';
   } else {
-    input.value = '';
-    categorySelect.value = 'allenamento';
-    btnDelete.style.display = 'none';
+    input.value = ''; categorySelect.value = 'allenamento'; btnDelete.style.display = 'none';
   }
 
   modal.classList.add('active');
@@ -140,15 +190,11 @@ window.closeNoteModal = function() {
 
 window.saveCurrentNote = function() {
   if (!activeDateKeyForNote) return;
-
   const text = document.getElementById('noteTextInput').value.trim();
   const category = document.getElementById('noteCategory').value;
 
-  if (text) {
-    notes[activeDateKeyForNote] = { text, category };
-  } else {
-    delete notes[activeDateKeyForNote];
-  }
+  if (text) notes[activeDateKeyForNote] = { text, category };
+  else delete notes[activeDateKeyForNote];
 
   saveDataToFirestore();
   closeNoteModal();
@@ -162,62 +208,18 @@ window.deleteCurrentNote = function() {
   closeNoteModal();
 };
 
-/* --- ESPORTAZIONE EXCEL CON CONTEGGIO NOTE --- */
-window.exportToExcel = function() {
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const monthName = new Intl.DateTimeFormat('it-IT', { month: 'long' }).format(currentDate);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+function render() {
+  setupDateSelectors();
+  if (currentView === 'grid') renderGrid();
+  else renderList();
+}
 
-  const data = [
-    ["Data", "Giorno", "Genitore con Valerio", "Cambio Turno", "Evento / Nota"]
-  ];
-
-  const daysOfWeek = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month, day);
-    const dateKey = formatDateKey(date);
-    const dateStr = `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year}`;
-    const dayName = daysOfWeek[date.getDay()];
-    
-    let genitore = "Non definito";
-    let cambio = "No";
-    let notaText = "";
-
-    if (date >= startDateA) {
-      const status = getParentForDate(date);
-      genitore = status.parent === 'papa' ? 'Papà' : 'Mamma';
-      if (status.isOverride) cambio = "Sì (Modificato)";
-    }
-
-    if (notes[dateKey]) {
-      notaText = `[${notes[dateKey].category.toUpperCase()}] ${notes[dateKey].text}`;
-    }
-
-    data.push([dateStr, dayName, genitore, cambio, notaText]);
-  }
-
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, `${monthName} ${year}`);
-
-  ws['!cols'] = [
-    { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 18 }, { wch: 35 }
-  ];
-
-  XLSX.writeFile(wb, `Turni_Valerio_${monthName}_${year}.xlsx`);
-};
-
-function renderCalendar() {
+function renderGrid() {
   const grid = document.getElementById('calendarGrid');
-  const title = document.getElementById('monthTitle');
   grid.innerHTML = '';
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-
-  title.textContent = new Intl.DateTimeFormat('it-IT', { month: 'long', year: 'numeric' }).format(currentDate);
 
   const headers = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
   headers.forEach(h => {
@@ -245,7 +247,6 @@ function renderCalendar() {
     const cell = document.createElement('div');
     cell.className = 'day-cell';
     
-    // Intestazione Cella (Numero Giorno + Tasto Nota)
     const cellTop = document.createElement('div');
     cellTop.className = 'cell-top';
 
@@ -262,36 +263,122 @@ function renderCalendar() {
 
     cell.appendChild(cellTop);
 
-    // Contenuto Nota / Evento
     if (notes[dateKey]) {
       const eventBadge = document.createElement('div');
       eventBadge.className = `event-badge ${notes[dateKey].category}`;
       eventBadge.textContent = notes[dateKey].text;
-      eventBadge.title = notes[dateKey].text;
       cell.appendChild(eventBadge);
     }
 
-    // Badge Turno Genitore
     if (date >= startDateA) {
       const status = getParentForDate(date);
       const badge = document.createElement('div');
       badge.className = `badge ${status.parent}`;
-      
-      let labelText = status.parent === 'papa' ? 'Papà' : 'Mamma';
-      badge.innerHTML = `<span>${labelText}</span>`;
-
-      if (status.isOverride) {
-        badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
-      }
-
+      badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
+      if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
       cell.appendChild(badge);
     }
 
-    // Cliccando sulla cella si cambia il turno (escluso il pulsante nota)
     cell.onclick = () => window.toggleDayOverride(dateKey);
-
     grid.appendChild(cell);
   }
 }
 
-renderCalendar();
+function renderList() {
+  const list = document.getElementById('calendarList');
+  list.innerHTML = '';
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+
+  for (let day = 1; day <= lastDay; day++) {
+    const date = new Date(year, month, day);
+    const dateKey = formatDateKey(date);
+    const item = document.createElement('div');
+    item.className = 'list-item';
+
+    const left = document.createElement('div');
+    left.className = 'list-item-left';
+
+    const dateTitle = document.createElement('div');
+    dateTitle.className = 'list-item-date';
+    dateTitle.textContent = `${daysOfWeek[date.getDay()]} ${day}`;
+    left.appendChild(dateTitle);
+
+    if (notes[dateKey]) {
+      const eventBadge = document.createElement('div');
+      eventBadge.className = `event-badge ${notes[dateKey].category}`;
+      eventBadge.textContent = notes[dateKey].text;
+      left.appendChild(eventBadge);
+    }
+
+    const right = document.createElement('div');
+    right.className = 'list-item-right';
+
+    if (date >= startDateA) {
+      const status = getParentForDate(date);
+      const badge = document.createElement('div');
+      badge.className = `badge ${status.parent}`;
+      badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
+      if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
+      right.appendChild(badge);
+    }
+
+    const noteBtn = document.createElement('button');
+    const hasNote = !!notes[dateKey];
+    noteBtn.className = `btn-note-trigger ${hasNote ? 'has-note' : ''}`;
+    noteBtn.innerHTML = hasNote ? '📝' : '➕';
+    noteBtn.onclick = (e) => window.openNoteModal(dateKey, e);
+    right.appendChild(noteBtn);
+
+    item.appendChild(left);
+    item.appendChild(right);
+    item.onclick = () => window.toggleDayOverride(dateKey);
+
+    list.appendChild(item);
+  }
+}
+
+/* --- ESPORTAZIONE EXCEL --- */
+window.exportToExcel = function() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const monthName = new Intl.DateTimeFormat('it-IT', { month: 'long' }).format(currentDate);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const data = [["Data", "Giorno", "Genitore con Valerio", "Cambio Turno", "Evento / Nota"]];
+  const daysOfWeek = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day);
+    const dateKey = formatDateKey(date);
+    const dateStr = `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year}`;
+    
+    let genitore = "Non definito";
+    let cambio = "No";
+    let notaText = "";
+
+    if (date >= startDateA) {
+      const status = getParentForDate(date);
+      genitore = status.parent === 'papa' ? 'Papà' : 'Mamma';
+      if (status.isOverride) cambio = "Sì (Modificato)";
+    }
+
+    if (notes[dateKey]) {
+      notaText = `[${notes[dateKey].category.toUpperCase()}] ${notes[dateKey].text}`;
+    }
+
+    data.push([dateStr, daysOfWeek[date.getDay()], genitore, cambio, notaText]);
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `${monthName} ${year}`);
+  ws['!cols'] = [{ wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 18 }, { wch: 35 }];
+
+  XLSX.writeFile(wb, `Turni_Valerio_${monthName}_${year}.xlsx`);
+};
+
+render();
