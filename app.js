@@ -57,11 +57,13 @@ window.onDateSelectChange = function() {
   const m = parseInt(document.getElementById('monthSelect').value);
   const y = parseInt(document.getElementById('yearSelect').value);
   currentDate = new Date(y, m, 1);
+  updateFilterDatesForCurrentMonth();
   render();
 };
 
 window.changeMonth = function(delta) {
   currentDate.setMonth(currentDate.getMonth() + delta);
+  updateFilterDatesForCurrentMonth();
   render();
 };
 
@@ -91,7 +93,6 @@ window.toggleDayOverride = function(dateKey) {
   overrides[dateKey] = newParent;
 
   // Se il nuovo genitore è DIVERSO da quello di default dello schema, è un cambio
-  // Se invece corrisponde al genitore standard, non mostra la dicitura 'Cambio'
   if (standardParent && newParent !== standardParent) {
     manualCambi[dateKey] = true;
   } else {
@@ -153,6 +154,76 @@ window.deleteCurrentNote = function() {
 };
 
 // -------------------------------------------------------------
+// LOGICA FILTRO DA / A E CONTEGGIO
+// -------------------------------------------------------------
+
+window.calculateStats = function() {
+  const startInput = document.getElementById('filterStartDate');
+  const endInput = document.getElementById('filterEndDate');
+
+  if (!startInput || !endInput || !startInput.value || !endInput.value) return;
+
+  const startDate = new Date(startInput.value + 'T00:00:00');
+  const endDate = new Date(endInput.value + 'T00:00:00');
+
+  if (startDate > endDate) {
+    return;
+  }
+
+  let countPapa = 0;
+  let countMamma = 0;
+  let countUndefined = 0;
+
+  let curr = new Date(startDate);
+  while (curr <= endDate) {
+    const status = getParentForDate(curr);
+
+    if (status && status.parent === 'papa') {
+      countPapa++;
+    } else if (status && status.parent === 'mamma') {
+      countMamma++;
+    } else {
+      countUndefined++;
+    }
+
+    curr.setDate(curr.getDate() + 1);
+  }
+
+  const elPapa = document.getElementById('countPapa');
+  const elMamma = document.getElementById('countMamma');
+  const elUndef = document.getElementById('countUndefined');
+
+  if (elPapa) elPapa.textContent = `${countPapa} giorni`;
+  if (elMamma) elMamma.textContent = `${countMamma} giorni`;
+  if (elUndef) elUndef.textContent = `${countUndefined} giorni`;
+};
+
+function initFilterDates() {
+  const startInput = document.getElementById('filterStartDate');
+  const endInput = document.getElementById('filterEndDate');
+
+  if (startInput && endInput && (!startInput.value || !endInput.value)) {
+    updateFilterDatesForCurrentMonth();
+  }
+}
+
+function updateFilterDatesForCurrentMonth() {
+  const startInput = document.getElementById('filterStartDate');
+  const endInput = document.getElementById('filterEndDate');
+
+  if (!startInput || !endInput) return;
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDay = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const lastDayObj = new Date(year, month + 1, 0);
+  const lastDay = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDayObj.getDate()).padStart(2, '0')}`;
+
+  startInput.value = firstDay;
+  endInput.value = lastDay;
+}
+
+// -------------------------------------------------------------
 // SINCRONIZZAZIONE FIRESTORE
 // -------------------------------------------------------------
 
@@ -204,7 +275,7 @@ function getStandardParent(date) {
 function getParentForDate(date) {
   const dateKey = formatDateKey(date);
   
-  // Mostra il badge 'Cambio' SOLO se la parola cambio era presente nel CSV o per modifiche manuali
+  // Mostra il badge 'Cambio' SOLO se presente nei cambi manuali o importati
   const isCambio = !!manualCambi[dateKey];
 
   if (overrides[dateKey]) {
@@ -242,8 +313,12 @@ function setupDateSelectors() {
 
 function render() {
   setupDateSelectors();
+  initFilterDates();
+  
   if (currentView === 'grid') renderGrid();
   else renderList();
+
+  window.calculateStats();
 }
 
 function renderGrid() {
@@ -308,7 +383,6 @@ function renderGrid() {
       const badge = document.createElement('div');
       badge.className = `badge ${status.parent}`;
       badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
-      // Mostra la scritta 'Cambio' soltanto se isOverride è true
       if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
       cell.appendChild(badge);
     }
@@ -437,7 +511,6 @@ window.importFromCSV = function(event) {
 
               if (!cellText) return;
 
-              // Rileva "cambio" se la parola appare esplicitamente nella cella
               if (lowerText.includes('cambio')) {
                 isCambioFound = true;
               }
@@ -480,6 +553,7 @@ window.importFromCSV = function(event) {
     }
 
     currentDate = new Date(targetYear, targetMonth, 1);
+    updateFilterDatesForCurrentMonth();
     saveDataToFirestore();
     render();
 
