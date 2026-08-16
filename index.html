@@ -37,6 +37,12 @@
   </div>
 
   <div class="action-buttons">
+    <!-- PULSANTE INSTALLAZIONE PWA (visibile solo se supportato dal browser) -->
+    <button type="button" id="btnInstall" class="btn btn-import" style="display: none;" onclick="installPWA()">
+      <span class="btn-icon">📲</span>
+      <span>Installa App</span>
+    </button>
+
     <label for="csvInput" class="btn btn-import">
       <span class="btn-icon">📄</span>
       <span>Carica File CSV</span>
