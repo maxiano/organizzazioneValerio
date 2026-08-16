@@ -25,6 +25,51 @@ let currentDate = new Date(2026, 0, 1); // Default: Gennaio 2026
 const startDateA = new Date(2026, 8, 7);
 
 // -------------------------------------------------------------
+// LOGICA INSTALLAZIONE PWA
+// -------------------------------------------------------------
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Previene la comparsa automatica del banner di sistema
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  // Mostra il pulsante "Installa App" se presente nel DOM
+  const installBtn = document.getElementById('btnInstall');
+  if (installBtn) {
+    installBtn.style.display = 'inline-flex';
+  }
+});
+
+window.installPWA = async function() {
+  if (!deferredPrompt) return;
+  
+  // Mostra il prompt nativo del browser
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  
+  if (outcome === 'accepted') {
+    console.log('L\'utente ha installato l\'applicazione');
+  }
+  
+  deferredPrompt = null;
+  
+  // Nasconde nuovamente il pulsante
+  const installBtn = document.getElementById('btnInstall');
+  if (installBtn) {
+    installBtn.style.display = 'none';
+  }
+};
+
+window.addEventListener('appinstalled', () => {
+  console.log('PWA installata con successo');
+  const installBtn = document.getElementById('btnInstall');
+  if (installBtn) {
+    installBtn.style.display = 'none';
+  }
+});
+
+// -------------------------------------------------------------
 // FUNZIONI GLOBALI
 // -------------------------------------------------------------
 
