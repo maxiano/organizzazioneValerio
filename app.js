@@ -25,16 +25,31 @@ let currentDate = new Date(2026, 0, 1); // Default: Gennaio 2026
 const startDateA = new Date(2026, 8, 7);
 
 // -------------------------------------------------------------
-// LOGICA INSTALLAZIONE PWA
+// LOGICA INSTALLAZIONE PWA (Sistemata)
 // -------------------------------------------------------------
-let deferredPrompt;
+let deferredPrompt = null;
+
+// Gestione visibilità pulsante al caricamento iniziale
+document.addEventListener('DOMContentLoaded', () => {
+  const installBtn = document.getElementById('btnInstall');
+  
+  // Controlla se l'app è già in modalità Standalone (già installata)
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+                    || window.navigator.standalone 
+                    || document.referrer.includes('android-app://');
+
+  if (isStandalone && installBtn) {
+    installBtn.style.display = 'none';
+  }
+});
 
 window.addEventListener('beforeinstallprompt', (e) => {
-  // Previene la comparsa automatica del banner di sistema
+  // Previene il banner di default del browser
   e.preventDefault();
   deferredPrompt = e;
-  
-  // Mostra il pulsante "Installa App" se presente nel DOM
+  console.log('✅ Evento prima dell\'installazione intercettato con successo!');
+
+  // Mostra il pulsante di installazione
   const installBtn = document.getElementById('btnInstall');
   if (installBtn) {
     installBtn.style.display = 'inline-flex';
@@ -42,27 +57,36 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 window.installPWA = async function() {
-  if (!deferredPrompt) return;
-  
-  // Mostra il prompt nativo del browser
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  
-  if (outcome === 'accepted') {
-    console.log('L\'utente ha installato l\'applicazione');
+  if (!deferredPrompt) {
+    alert("⚠️ L'installazione PWA non è disponibile al momento.\n\nMotivi possibili:\n1. L'app è già stata installata.\n2. Il browser sta ancora verificando il Service Worker (attendi qualche secondo e ricarica).\n3. Stai usando un browser che non supporta l'installazione automatica (es. Safari su iOS).");
+    return;
   }
-  
-  deferredPrompt = null;
-  
-  // Nasconde nuovamente il pulsante
-  const installBtn = document.getElementById('btnInstall');
-  if (installBtn) {
-    installBtn.style.display = 'none';
+
+  try {
+    // Mostra il prompt nativo del browser
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`Esito installazione utente: ${outcome}`);
+
+    if (outcome === 'accepted') {
+      console.log('L\'utente ha accettato l\'installazione.');
+    } else {
+      console.log('L\'utente ha rifiutato l\'installazione.');
+    }
+  } catch (err) {
+    console.error('Errore durante l\'installazione PWA:', err);
+  } finally {
+    deferredPrompt = null;
+    const installBtn = document.getElementById('btnInstall');
+    if (installBtn) {
+      installBtn.style.display = 'none';
+    }
   }
 };
 
 window.addEventListener('appinstalled', () => {
-  console.log('PWA installata con successo');
+  console.log('🎉 PWA installata con successo!');
+  deferredPrompt = null;
   const installBtn = document.getElementById('btnInstall');
   if (installBtn) {
     installBtn.style.display = 'none';
