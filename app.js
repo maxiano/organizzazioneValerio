@@ -77,15 +77,27 @@ window.switchView = function(view) {
 
 window.toggleDayOverride = function(dateKey) {
   const date = new Date(dateKey + 'T00:00:00');
+  const standardParent = getStandardParent(date); // Genitore di default per quel giorno
   const currentStatus = getParentForDate(date);
-  
-  if (currentStatus.parent) {
-    overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
-    manualCambi[dateKey] = true; // Segna come cambio manuale
-  } else {
-    overrides[dateKey] = 'papa';
-    manualCambi[dateKey] = true;
+
+  // Determina il nuovo genitore
+  let newParent = 'papa';
+  if (currentStatus.parent === 'papa') {
+    newParent = 'mamma';
+  } else if (currentStatus.parent === 'mamma') {
+    newParent = 'papa';
   }
+
+  overrides[dateKey] = newParent;
+
+  // Se il nuovo genitore è DIVERSO da quello di default dello schema, è un cambio
+  // Se invece corrisponde al genitore standard, non mostra la dicitura 'Cambio'
+  if (standardParent && newParent !== standardParent) {
+    manualCambi[dateKey] = true;
+  } else {
+    delete manualCambi[dateKey];
+  }
+
   saveDataToFirestore();
 };
 
