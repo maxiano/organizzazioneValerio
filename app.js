@@ -378,7 +378,19 @@ window.importFromCSV = function(event) {
     let importedNote = 0;
 
     let targetYear = 2026;
-    let targetMonth = 1; // Febbraio (0-based)
+    let targetMonth = 0; // Default: Gennaio (0-based)
+
+    // Rileva automaticamente il mese dal foglio (es. "gennaio 2026" o "febbraio 2026")
+    const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+    
+    for (let r = 0; r < Math.min(10, lines.length); r++) {
+      const lineStr = lines[r].join(' ').toLowerCase();
+      monthNames.forEach((m, idx) => {
+        if (lineStr.includes(m)) targetMonth = idx;
+      });
+      const yearMatch = lineStr.match(/20\d{2}/);
+      if (yearMatch) targetYear = parseInt(yearMatch[0]);
+    }
 
     for (let r = 0; r < lines.length; r++) {
       const row = lines[r];
@@ -389,8 +401,8 @@ window.importFromCSV = function(event) {
 
         if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31 && val === String(dayNum)) {
 
-          if (r > 30 && dayNum === 1) continue;
-          if (r === 9 && dayNum > 20) continue;
+          // Ignora celle del calendario fuori dal blocco principale
+          if (r > 35) continue;
 
           const mStr = String(targetMonth + 1).padStart(2, '0');
           const dStr = String(dayNum).padStart(2, '0');
@@ -399,23 +411,25 @@ window.importFromCSV = function(event) {
           let noteList = [];
           let detectedParent = null;
 
+          // Cerca nelle 6 righe sottostanti sia nella colonna corrente che nelle adiacenti
           for (let offset = 1; offset <= 6; offset++) {
             if (r + offset >= lines.length) break;
 
-            [c, c + 1].forEach(colIdx => {
-              if (colIdx >= lines[r + offset].length) return;
+            [c, c + 1, c - 1].forEach(colIdx => {
+              if (colIdx < 0 || colIdx >= lines[r + offset].length) return;
 
               const cellText = lines[r + offset][colIdx] ? lines[r + offset][colIdx].trim().replace(/\s+/g, ' ') : '';
               const lowerText = cellText.toLowerCase();
 
               if (!cellText) return;
 
-              if (lowerText.includes('con me') || lowerText.includes('con papa') || lowerText === 'me') {
+              if (lowerText.includes('con me') || lowerText.includes('con papa') || lowerText === 'me' || lowerText === 'resto con me') {
                 detectedParent = 'papa';
               } else if (lowerText.includes('con mamma') || lowerText === 'mamma') {
                 detectedParent = 'mamma';
               } else if (
                 !['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica', 'note'].includes(lowerText) &&
+                !lowerText.includes('passaggio') && !lowerText.includes('vertex42') && !lowerText.includes('layout') &&
                 isNaN(Number(cellText))
               ) {
                 if (!noteList.includes(cellText)) noteList.push(cellText);
@@ -439,11 +453,14 @@ window.importFromCSV = function(event) {
       }
     }
 
+    // Imposta la vista del calendario sul mese e anno importati
     currentDate = new Date(targetYear, targetMonth, 1);
+
     saveDataToFirestore();
     render();
 
-    alert(`Importazione completata con successo!\n- Turni salvati: ${importedTurni}\n- Note/Eventi salvati: ${importedNote}`);
+    const monthLabel = monthNames[targetMonth].toUpperCase();
+    alert(`Importazione completata per ${monthLabel} ${targetYear}!\n- Turni salvati: ${importedTurni}\n- Note salvate: ${importedNote}`);
   };
 
   reader.readAsText(file, 'ISO-8859-1');
