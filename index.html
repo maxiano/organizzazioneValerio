@@ -1,3 +1,4 @@
+HTML
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -36,33 +37,56 @@
     <div class="legend-item"><span class="dot mamma"></span> Con Mamma</div>
   </div>
 
- <div class="action-buttons">
-<label for="csvInput" class="btn btn-import">
-    <span class="btn-icon">📄</span>
-    <span>Carica File CSV</span>
-    <input type="file" id="csvInput" accept=".csv" onchange="importFromCSV(event)">
-  </label>
+  <div class="action-buttons">
+    <label for="csvInput" class="btn btn-import">
+      <span class="btn-icon">📄</span>
+      <span>Carica File CSV</span>
+      <input type="file" id="csvInput" accept=".csv" onchange="importFromCSV(event)">
+    </label>
 
-  <button type="button" class="btn btn-print" onclick="window.print()">
-    <span class="btn-icon">🖨️</span>
-    <span>Stampa / PDF</span>
-  </button>
+    <button type="button" class="btn btn-print" onclick="window.print()">
+      <span class="btn-icon">🖨️</span>
+      <span>Stampa / PDF</span>
+    </button>
 
-  <button type="button" class="btn btn-export" onclick="exportToExcel()">
-    <span class="btn-icon">📊</span>
-    <span>Esporta Excel</span>
-  </button>
+    <button type="button" class="btn btn-export" onclick="exportToExcel()">
+      <span class="btn-icon">📊</span>
+      <span>Esporta Excel</span>
+    </button>
 
-  <button type="button" class="btn btn-reset" onclick="resetOverrides()">
-    <span class="btn-icon">🔄</span>
-    <span>Ripristina Standard</span>
-  </button>
-</div>
+    <button type="button" class="btn btn-reset" onclick="resetOverrides()">
+      <span class="btn-icon">🔄</span>
+      <span>Ripristina Standard</span>
+    </button>
+  </div>
 
   <!-- SELETTORE VISTA (GRIGLIA / LISTA) -->
   <div class="view-toggle">
     <button id="btnViewGrid" class="btn-toggle active" onclick="switchView('grid')">📅 Griglia</button>
     <button id="btnViewList" class="btn-toggle" onclick="switchView('list')">📋 Lista Agenda</button>
+  </div>
+
+  <!-- FILTRO INTERVALLO DATE E CONTEGGIO TOTALI -->
+  <div class="stats-card">
+    <h3>📊 Calcolo Giorni per Intervallo</h3>
+    <div class="filter-group">
+      <label>Da: <input type="date" id="filterStartDate" onchange="calculateStats()"></label>
+      <label>A: <input type="date" id="filterEndDate" onchange="calculateStats()"></label>
+    </div>
+    <div class="stats-results">
+      <div class="stat-box papa-box">
+        <span>👨 Papà</span>
+        <strong id="countPapa">0 giorni</strong>
+      </div>
+      <div class="stat-box mamma-box">
+        <span>👩 Mamma</span>
+        <strong id="countMamma">0 giorni</strong>
+      </div>
+      <div class="stat-box undefined-box">
+        <span>❓ Non Assegnati</span>
+        <strong id="countUndefined">0 giorni</strong>
+      </div>
+    </div>
   </div>
 
   <!-- CONTROLLI MESE / ANNO RAPIDI -->
