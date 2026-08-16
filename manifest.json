@@ -1,6 +1,10 @@
 {
   "short_name": "Turni Valerio",
   "name": "Calendario Turni Valerio",
+  "start_url": "./index.html",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "display": "standalone",
   "icons": [
     {
       "src": "./icon-192.png",
@@ -13,9 +17,20 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": "./index.html",
-  "background_color": "#f8fafc",
-  "theme_color": "#2563eb",
-  "display": "standalone",
-  "orientation": "portrait"
+  "screenshots": [
+    {
+      "src": "./screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Vista Calendario Desktop"
+    },
+    {
+      "src": "./screenshot-mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Vista Calendario Mobile"
+    }
+  ]
 }
