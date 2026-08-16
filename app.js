@@ -17,23 +17,25 @@ const docRef = doc(db, "turni_valerio", "overrides");
 
 let overrides = {};
 let notes = {};
+let manualCambi = {}; // Registra specificamente la presenza della parola "cambio"
 let activeDateKeyForNote = null;
 let currentView = 'grid'; 
 
-let currentDate = new Date(2026, 1, 1); // Default: Febbraio 2026
-const startDateA = new Date(2026, 8, 7); // Lunedì 7 Settembre 2026
+let currentDate = new Date(2026, 0, 1); // Default: Gennaio 2026
+const startDateA = new Date(2026, 8, 7);
 
 // -------------------------------------------------------------
-// FUNZIONI GLOBALI (Registrate subito per evitare ReferenceError)
+// FUNZIONI GLOBALI
 // -------------------------------------------------------------
 
 window.resetOverrides = async function() {
   if (confirm("Vuoi cancellare tutti i cambi manuali e le note salvate?")) {
     overrides = {};
     notes = {};
+    manualCambi = {};
     await saveDataToFirestore();
     render();
-    alert("Tutti i cambi e le note sono stati azzerati!");
+    alert("Tutti i dati e i cambi sono stati azzerati!");
   }
 };
 
@@ -77,12 +79,12 @@ window.toggleDayOverride = function(dateKey) {
   const date = new Date(dateKey + 'T00:00:00');
   const currentStatus = getParentForDate(date);
   
-  if (!currentStatus.isOverride && currentStatus.parent) {
+  if (currentStatus.parent) {
     overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
-  } else if (currentStatus.isOverride) {
-    overrides[dateKey] = currentStatus.parent === 'papa' ? 'mamma' : 'papa';
+    manualCambi[dateKey] = true; // Segna come cambio manuale
   } else {
     overrides[dateKey] = 'papa';
+    manualCambi[dateKey] = true;
   }
   saveDataToFirestore();
 };
@@ -139,30 +141,26 @@ window.deleteCurrentNote = function() {
 };
 
 // -------------------------------------------------------------
-// INIZIALIZZAZIONE & SINCRONIZZAZIONE FIRESTORE
+// SINCRONIZZAZIONE FIRESTORE
 // -------------------------------------------------------------
-
-if (localStorage.getItem('theme') === 'dark') {
-  document.documentElement.setAttribute('data-theme', 'dark');
-  const themeBtn = document.getElementById('themeToggleBtn');
-  if (themeBtn) themeBtn.textContent = '☀️ Chiaro';
-}
 
 onSnapshot(docRef, (docSnap) => {
   if (docSnap.exists()) {
     const data = docSnap.data();
     overrides = data.data || {};
     notes = data.notes || {};
+    manualCambi = data.manualCambi || {};
   } else {
     overrides = {};
     notes = {};
+    manualCambi = {};
   }
   render();
 });
 
 async function saveDataToFirestore() {
   try {
-    await setDoc(docRef, { data: overrides, notes: notes });
+    await setDoc(docRef, { data: overrides, notes: notes, manualCambi: manualCambi });
   } catch (error) {
     console.error("Errore Firestore:", error);
   }
@@ -193,8 +191,12 @@ function getStandardParent(date) {
 
 function getParentForDate(date) {
   const dateKey = formatDateKey(date);
+  
+  // Mostra il badge 'Cambio' SOLO se la parola cambio era presente nel CSV o per modifiche manuali
+  const isCambio = !!manualCambi[dateKey];
+
   if (overrides[dateKey]) {
-    return { parent: overrides[dateKey], isOverride: true };
+    return { parent: overrides[dateKey], isOverride: isCambio };
   }
   return { parent: getStandardParent(date), isOverride: false };
 }
@@ -294,6 +296,7 @@ function renderGrid() {
       const badge = document.createElement('div');
       badge.className = `badge ${status.parent}`;
       badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
+      // Mostra la scritta 'Cambio' soltanto se isOverride è true
       if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
       cell.appendChild(badge);
     }
@@ -362,7 +365,7 @@ function renderList() {
 }
 
 // -------------------------------------------------------------
-// IMPORT & EXPORT
+// IMPORTAZIONE CSV
 // -------------------------------------------------------------
 
 window.importFromCSV = function(event) {
@@ -376,11 +379,11 @@ window.importFromCSV = function(event) {
 
     let importedTurni = 0;
     let importedNote = 0;
+    let importedCambi = 0;
 
     let targetYear = 2026;
-    let targetMonth = 0; // Default: Gennaio (0-based)
+    let targetMonth = 0; // Default Gennaio
 
-    // Rileva automaticamente il mese dal foglio (es. "gennaio 2026" o "febbraio 2026")
     const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
     
     for (let r = 0; r < Math.min(10, lines.length); r++) {
@@ -401,7 +404,6 @@ window.importFromCSV = function(event) {
 
         if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31 && val === String(dayNum)) {
 
-          // Ignora celle del calendario fuori dal blocco principale
           if (r > 35) continue;
 
           const mStr = String(targetMonth + 1).padStart(2, '0');
@@ -410,8 +412,8 @@ window.importFromCSV = function(event) {
 
           let noteList = [];
           let detectedParent = null;
+          let isCambioFound = false;
 
-          // Cerca nelle 6 righe sottostanti sia nella colonna corrente che nelle adiacenti
           for (let offset = 1; offset <= 6; offset++) {
             if (r + offset >= lines.length) break;
 
@@ -422,6 +424,11 @@ window.importFromCSV = function(event) {
               const lowerText = cellText.toLowerCase();
 
               if (!cellText) return;
+
+              // Rileva "cambio" se la parola appare esplicitamente nella cella
+              if (lowerText.includes('cambio')) {
+                isCambioFound = true;
+              }
 
               if (lowerText.includes('con me') || lowerText.includes('con papa') || lowerText === 'me' || lowerText === 'resto con me') {
                 detectedParent = 'papa';
@@ -442,6 +449,13 @@ window.importFromCSV = function(event) {
             importedTurni++;
           }
 
+          if (isCambioFound) {
+            manualCambi[dateKey] = true;
+            importedCambi++;
+          } else {
+            delete manualCambi[dateKey];
+          }
+
           if (noteList.length > 0) {
             notes[dateKey] = {
               text: noteList.join(' - '),
@@ -453,14 +467,12 @@ window.importFromCSV = function(event) {
       }
     }
 
-    // Imposta la vista del calendario sul mese e anno importati
     currentDate = new Date(targetYear, targetMonth, 1);
-
     saveDataToFirestore();
     render();
 
     const monthLabel = monthNames[targetMonth].toUpperCase();
-    alert(`Importazione completata per ${monthLabel} ${targetYear}!\n- Turni salvati: ${importedTurni}\n- Note salvate: ${importedNote}`);
+    alert(`Importazione completata per ${monthLabel} ${targetYear}!\n- Turni registrati: ${importedTurni}\n- Cambi rilevati: ${importedCambi}\n- Note salvate: ${importedNote}`);
   };
 
   reader.readAsText(file, 'ISO-8859-1');
@@ -487,7 +499,7 @@ window.exportToExcel = function() {
     const status = getParentForDate(date);
     if (status && status.parent) {
       genitore = status.parent === 'papa' ? 'Papà' : 'Mamma';
-      if (status.isOverride) cambio = "Sì (Modificato)";
+      if (status.isOverride) cambio = "Sì (Cambio)";
     }
 
     if (notes[dateKey]) {
