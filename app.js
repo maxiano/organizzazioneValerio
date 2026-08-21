@@ -21,8 +21,9 @@ let manualCambi = {}; // Registra specificamente la presenza della parola "cambi
 let activeDateKeyForNote = null;
 let currentView = 'grid'; 
 
-let currentDate = new Date(2026, 0, 1); // Default: Gennaio 2026
-const startDateA = new Date(2026, 8, 7);
+// SOSTITUISCILA CON QUESTA:
+let currentDate = new Date();
+const startDateA = new Date();
 
 // -------------------------------------------------------------
 // LOGICA INSTALLAZIONE PWA (Sistemata)
