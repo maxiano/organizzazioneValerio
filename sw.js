@@ -51,11 +51,13 @@ self.addEventListener('fetch', (event) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).catch(() => {
-        // Fallback in caso di assenza di rete
+      return fetch(event.request).catch((error) => {
+        // Fallback per la navigazione
         if (event.request.mode === 'navigate') {
           return caches.match('./index.html');
         }
+        // Se non trova la risorsa e fallisce la rete, lancia l'errore in modo pulito
+        return Promise.reject(error);
       });
     })
   );
