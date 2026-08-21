@@ -181,9 +181,15 @@ window.openNoteModal = function(dateKey, event) {
   const input = document.getElementById('noteTextInput');
   const categorySelect = document.getElementById('noteCategory');
   const btnDelete = document.getElementById('btnDeleteNote');
+  const checkIsCambio = document.getElementById('checkIsCambio');
 
   const [y, m, d] = dateKey.split('-');
   modalTitle.textContent = `Nota / Evento del ${d}/${m}/${y}`;
+
+  // Imposta la spunta se il giorno era stato marcato come cambio
+  if (checkIsCambio) {
+    checkIsCambio.checked = !!manualCambi[dateKey];
+  }
 
   if (notes[dateKey]) {
     input.value = notes[dateKey].text || '';
@@ -198,18 +204,22 @@ window.openNoteModal = function(dateKey, event) {
   modal.classList.add('active');
 };
 
-window.closeNoteModal = function() {
-  document.getElementById('noteModal').classList.remove('active');
-  activeDateKeyForNote = null;
-};
-
 window.saveCurrentNote = function() {
   if (!activeDateKeyForNote) return;
   const text = document.getElementById('noteTextInput').value.trim();
   const category = document.getElementById('noteCategory').value;
+  const checkIsCambio = document.getElementById('checkIsCambio');
 
+  // Gestione nota
   if (text) notes[activeDateKeyForNote] = { text, category };
   else delete notes[activeDateKeyForNote];
+
+  // Gestione manuale della dicitura "Cambio"
+  if (checkIsCambio && checkIsCambio.checked) {
+    manualCambi[activeDateKeyForNote] = true;
+  } else {
+    delete manualCambi[activeDateKeyForNote];
+  }
 
   saveDataToFirestore();
   closeNoteModal();
