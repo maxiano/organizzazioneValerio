@@ -21,20 +21,17 @@ let manualCambi = {}; // Registra specificamente la presenza della parola "cambi
 let activeDateKeyForNote = null;
 let currentView = 'grid'; 
 
-// SOSTITUISCILA CON QUESTA:
 let currentDate = new Date();
 const startDateA = new Date();
 
 // -------------------------------------------------------------
-// LOGICA INSTALLAZIONE PWA (Sistemata)
+// LOGICA INSTALLAZIONE PWA
 // -------------------------------------------------------------
 let deferredPrompt = null;
 
-// Gestione visibilità pulsante al caricamento iniziale
 document.addEventListener('DOMContentLoaded', () => {
   const installBtn = document.getElementById('btnInstall');
   
-  // Controlla se l'app è già in modalità Standalone (già installata)
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
                     || window.navigator.standalone 
                     || document.referrer.includes('android-app://');
@@ -45,12 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.addEventListener('beforeinstallprompt', (e) => {
-  // Previene il banner di default del browser
   e.preventDefault();
   deferredPrompt = e;
-  console.log('✅ Evento prima dell\'installazione intercettato con successo!');
 
-  // Mostra il pulsante di installazione
   const installBtn = document.getElementById('btnInstall');
   if (installBtn) {
     installBtn.style.display = 'inline-flex';
@@ -59,21 +53,14 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 window.installPWA = async function() {
   if (!deferredPrompt) {
-    alert("⚠️ L'installazione PWA non è disponibile al momento.\n\nMotivi possibili:\n1. L'app è già stata installata.\n2. Il browser sta ancora verificando il Service Worker (attendi qualche secondo e ricarica).\n3. Stai usando un browser che non supporta l'installazione automatica (es. Safari su iOS).");
+    alert("⚠️ L'installazione PWA non è disponibile al momento.\n\nMotivi possibili:\n1. L'app è già stata installata.\n2. Il browser sta ancora verificando il Service Worker.\n3. Stai usando un browser che non supporta l'installazione automatica (es. Safari su iOS).");
     return;
   }
 
   try {
-    // Mostra il prompt nativo del browser
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     console.log(`Esito installazione utente: ${outcome}`);
-
-    if (outcome === 'accepted') {
-      console.log('L\'utente ha accettato l\'installazione.');
-    } else {
-      console.log('L\'utente ha rifiutato l\'installazione.');
-    }
   } catch (err) {
     console.error('Errore durante l\'installazione PWA:', err);
   } finally {
@@ -86,7 +73,6 @@ window.installPWA = async function() {
 };
 
 window.addEventListener('appinstalled', () => {
-  console.log('🎉 PWA installata con successo!');
   deferredPrompt = null;
   const installBtn = document.getElementById('btnInstall');
   if (installBtn) {
@@ -147,11 +133,11 @@ window.switchView = function(view) {
   render();
 };
 
+// CAMBIA GENITORE AL CLICK SENZA "CAMBIO"
 window.toggleDayOverride = function(dateKey) {
   const date = new Date(dateKey + 'T00:00:00');
   const currentStatus = getParentForDate(date);
 
-  // Alterna il genitore: da Papà a Mamma e viceversa
   let newParent = 'papa';
   if (currentStatus.parent === 'papa') {
     newParent = 'mamma';
@@ -159,18 +145,15 @@ window.toggleDayOverride = function(dateKey) {
     newParent = 'papa';
   }
 
-  // 1. Salva l'override con il nuovo genitore scelto
   overrides[dateKey] = newParent;
-
-  // 2. Rimuove/Azzera qualsiasi flag "Cambio" per questa data
   delete manualCambi[dateKey];
 
-  // 3. Salva su Firebase e aggiorna l'interfaccia
   saveDataToFirestore();
+  render();
 };
 
 window.openNoteModal = function(dateKey, event) {
-  event.stopPropagation();
+  if (event) event.stopPropagation();
   activeDateKeyForNote = dateKey;
   
   const modal = document.getElementById('noteModal');
@@ -183,7 +166,6 @@ window.openNoteModal = function(dateKey, event) {
   const [y, m, d] = dateKey.split('-');
   modalTitle.textContent = `Nota / Evento del ${d}/${m}/${y}`;
 
-  // Imposta la spunta se il giorno era stato marcato come cambio
   if (checkIsCambio) {
     checkIsCambio.checked = !!manualCambi[dateKey];
   }
@@ -207,11 +189,12 @@ window.saveCurrentNote = function() {
   const category = document.getElementById('noteCategory').value;
   const checkIsCambio = document.getElementById('checkIsCambio');
 
-  // Gestione nota
-  if (text) notes[activeDateKeyForNote] = { text, category };
-  else delete notes[activeDateKeyForNote];
+  if (text) {
+    notes[activeDateKeyForNote] = { text, category };
+  } else {
+    delete notes[activeDateKeyForNote];
+  }
 
-  // Gestione manuale della dicitura "Cambio"
   if (checkIsCambio && checkIsCambio.checked) {
     manualCambi[activeDateKeyForNote] = true;
   } else {
@@ -230,6 +213,12 @@ window.deleteCurrentNote = function() {
   closeNoteModal();
 };
 
+window.closeNoteModal = function() {
+  const modal = document.getElementById('noteModal');
+  if (modal) modal.classList.remove('active');
+  activeDateKeyForNote = null;
+};
+
 // -------------------------------------------------------------
 // LOGICA FILTRO DA / A E CONTEGGIO
 // -------------------------------------------------------------
@@ -243,9 +232,7 @@ window.calculateStats = function() {
   const startDate = new Date(startInput.value + 'T00:00:00');
   const endDate = new Date(endInput.value + 'T00:00:00');
 
-  if (startDate > endDate) {
-    return;
-  }
+  if (startDate > endDate) return;
 
   let countPapa = 0;
   let countMamma = 0;
@@ -351,14 +338,12 @@ function getStandardParent(date) {
 
 function getParentForDate(date) {
   const dateKey = formatDateKey(date);
-  
-  // Mostra il badge 'Cambio' SOLO se presente nei cambi manuali o importati
   const isCambio = !!manualCambi[dateKey];
 
   if (overrides[dateKey]) {
     return { parent: overrides[dateKey], isOverride: isCambio };
   }
-  return { parent: getStandardParent(date), isOverride: false };
+  return { parent: getStandardParent(date), isOverride: isCambio };
 }
 
 function setupDateSelectors() {
@@ -545,7 +530,7 @@ window.importFromCSV = function(event) {
     let importedCambi = 0;
 
     let targetYear = 2026;
-    let targetMonth = 0; // Default Gennaio
+    let targetMonth = 0;
 
     const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
     
