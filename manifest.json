@@ -1,20 +1,27 @@
 {
   "short_name": "Turni Valerio",
   "name": "Calendario Turni Valerio",
+  "description": "Applicazione per la gestione e la tracciabilità dei turni e degli eventi di Valerio",
+  "lang": "it-IT",
   "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
-  "display": "standalone",
+  "categories": ["utilities", "productivity"],
   "icons": [
     {
       "src": "./icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "./icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "screenshots": [
