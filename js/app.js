@@ -27,18 +27,21 @@ let deferredPrompt = null;
 function getParentForDateWithVacanze(date) {
   const dateKey = turniMgr.formatDateKey(date);
 
-  // 1. Priorità: Override manuale del singolo giorno (se valido)
+  // 1. Priorità: Override manuale del singolo giorno
   const overrideParent = turniMgr.overrides ? turniMgr.overrides[dateKey] : null;
 
-  if (overrideParent && (overrideParent === 'papa' || overrideParent === 'mamma')) {
-    // Recuperiamo il turno STANDARD (senza override) per capire se è un vero cambio
-    const standardParent = turniMgr.getStandardParent(date);
+  if (overrideParent && (overrideParent === 'papa' || overrideParent === 'mamma' || overrideParent === 'none')) {
+    // Calcola il turno standard creando una data pulita (mezzanotte locale)
+    const cleanDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const standardParent = turniMgr.getStandardParent(cleanDate);
     
-    // Mostra "Cambio" se il genitore manuale è DIVERSO dalla rotazione standard
-    const isRealChange = standardParent !== overrideParent;
+    const actualParent = overrideParent === 'none' ? null : overrideParent;
+
+    // È un "Cambio" SOLO SE c'è un genitore standard E il genitore manuale è diverso da quello standard
+    const isRealChange = standardParent !== null && actualParent !== standardParent;
 
     return { 
-      parent: overrideParent, 
+      parent: actualParent, 
       isOverride: isRealChange, 
       isVacanza: false 
     };
@@ -58,10 +61,15 @@ function getParentForDateWithVacanze(date) {
   }
 
   // 3. Terza priorità: Rotazione standard
-  return turniMgr.getParentForDate(date);
+  const standardStatus = turniMgr.getParentForDate(date);
+  return {
+    parent: standardStatus.parent,
+    isOverride: false, // I giorni di rotazione normale NON sono cambi
+    isVacanza: false
+  };
 }
 
-// Esponi la funzione a window per il debug da console
+// Esponi globalmente
 window.getParentForDateWithVacanze = getParentForDateWithVacanze;
 
 // -------------------------------------------------------------
