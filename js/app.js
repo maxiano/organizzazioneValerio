@@ -3,7 +3,7 @@
 // =============================================================
 console.log("=== APP.JS È STATO CARICATO CORRETTAMENTE ===");
 // 1. IMPORT FIREBASE (Sempre in cima al file)
-import { app, db, docRef } from './firebase-config.js';
+import { db, docRef } from './firebase-config.js';
 // 2. IMPORT DELLE FUNZIONI FIRESTORE DALLA CDN (se devi leggere o scrivere dati)
 import { getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { TurniManager } from './modules/TurniManager.js';
