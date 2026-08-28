@@ -1,9 +1,10 @@
 export class TurniManager {
-  constructor(startDateA = new Date()) {
-    // Normalizziamo la data di partenza a mezzanotte
-    const d = new Date(startDateA);
-    d.setHours(0, 0, 0, 0);
-    this.startDateA = d;
+  constructor(startDateA = null) {
+    // SE NON VIENE PASSATA UNA DATA, usiamo una data base fissa (es. 1 Gennaio 2024)
+    // Sostituisci '2024-01-01' con la data reale in cui è iniziata la rotazione Papà/Mamma
+    const baseDate = startDateA ? new Date(startDateA) : new Date('2024-01-01T00:00:00');
+    baseDate.setHours(0, 0, 0, 0);
+    this.startDateA = baseDate;
 
     this.overrides = {};
     this.manualCambi = {};
@@ -26,12 +27,16 @@ export class TurniManager {
     d.setHours(0, 0, 0, 0);
 
     const msPerDay = 86400000;
+    // Calcolo della differenza in giorni
     const daysDiff = Math.floor((d - this.startDateA) / msPerDay);
-    if (daysDiff < 0) return null;
 
+    // Gestione corretta dei giorni antecedenti alla data base
     const cycleDay = ((daysDiff % 14) + 14) % 14; 
-    if (cycleDay === 0 || cycleDay === 3 || cycleDay === 5 || cycleDay === 6) return 'papa';
-    if (cycleDay === 8 || cycleDay === 10) return 'papa';
+
+    // Schema rotazione (Giorni Papà: 0, 3, 5, 6, 8, 10)
+    if (cycleDay === 0 || cycleDay === 3 || cycleDay === 5 || cycleDay === 6 || cycleDay === 8 || cycleDay === 10) {
+      return 'papa';
+    }
 
     return 'mamma';
   }
@@ -40,26 +45,29 @@ export class TurniManager {
     const dateKey = this.formatDateKey(date);
     const standardParent = this.getStandardParent(date);
 
-    // Se esiste un override per questa data
+    // Controlla se la data è presente in overrides
     if (Object.prototype.hasOwnProperty.call(this.overrides, dateKey)) {
       const p = this.overrides[dateKey];
       const actualParent = p === 'none' ? null : p;
 
-      // È un cambio se il genitore impostato differisce da quello di rotazione standard
+      // È un cambio SOLO SE il genitore manuale è diverso dal genitore standard di rotazione
       const isOverride = actualParent !== standardParent;
 
       return { parent: actualParent, isOverride: isOverride };
     }
 
-    // Rotazione standard
+    // Rotazione standard senza modifiche manuali
     return { parent: standardParent, isOverride: false };
   }
 
   toggleDay(dateKey) {
-    const date = new Date(dateKey + 'T00:00:00');
+    // Parsing manuale della chiave YYYY-MM-DD per evitare problemi di fuso orario UTC/locale
+    const parts = dateKey.split('-');
+    const date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    
     const currentStatus = this.getParentForDate(date);
 
-    // Ciclo: Papà -> Mamma -> Nessuno -> Papà
+    // Ciclo di selezione manuale: Papà -> Mamma -> Nessuno -> Papà
     if (currentStatus.parent === 'papa') {
       this.overrides[dateKey] = 'mamma';
     } else if (currentStatus.parent === 'mamma') {
