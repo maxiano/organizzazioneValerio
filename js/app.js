@@ -26,14 +26,16 @@ let deferredPrompt = null;
 // -------------------------------------------------------------
 function getParentForDateWithVacanze(date) {
   const dateKey = turniMgr.formatDateKey(date);
-  const defaultTurno = turniMgr.getParentForDate(date);
 
-  // 1. Override manuale del singolo giorno (solo se presente un valore valido)
+  // 1. Priorità: Override manuale del singolo giorno (se valido)
   const overrideParent = turniMgr.overrides ? turniMgr.overrides[dateKey] : null;
 
   if (overrideParent && (overrideParent === 'papa' || overrideParent === 'mamma')) {
-    // Mostra "Cambio" solo se il genitore impostato manualmente è DIVERSO da quello di rotazione standard
-    const isRealChange = defaultTurno && defaultTurno.parent !== overrideParent;
+    // Recuperiamo il turno STANDARD (senza override) per capire se è un vero cambio
+    const standardParent = turniMgr.getStandardParent(date);
+    
+    // Mostra "Cambio" se il genitore manuale è DIVERSO dalla rotazione standard
+    const isRealChange = standardParent !== overrideParent;
 
     return { 
       parent: overrideParent, 
@@ -55,9 +57,12 @@ function getParentForDateWithVacanze(date) {
     }
   }
 
-  // 3. Calcolo di rotazione standard
-  return defaultTurno;
+  // 3. Terza priorità: Rotazione standard
+  return turniMgr.getParentForDate(date);
 }
+
+// Esponi la funzione a window per il debug da console
+window.getParentForDateWithVacanze = getParentForDateWithVacanze;
 
 // -------------------------------------------------------------
 // LOGICA INSTALLAZIONE PWA
