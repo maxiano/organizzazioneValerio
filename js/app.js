@@ -6,6 +6,7 @@ import { LogisticaManager } from "./modules/LogisticaManager.js";
 import { SaluteManager } from "./modules/SaluteManager.js";
 import { VacanzeManager } from "./modules/VacanzeManager.js";
 import { ExportManager } from "./modules/ExportManager.js";
+import { FestivitaManager } from './modules/FestivitaManager.js';
 
 // Inizializzazione Istanze Moduli
 const turniMgr = new TurniManager();
@@ -13,6 +14,7 @@ const speseMgr = new SpeseManager();
 const logisticaMgr = new LogisticaManager();
 const saluteMgr = new SaluteManager();
 const vacanzeMgr = new VacanzeManager();
+const festivitaManager = new FestivitaManager();
 
 let notes = {};
 let activeDateKeyForNote = null;
@@ -22,12 +24,13 @@ let currentDate = new Date();
 let deferredPrompt = null;
 
 // -------------------------------------------------------------
-// HELPER PER DETERMINARE IL GENITORE DEL GIORNO (Con Priorità Vacanze)
+// HELPER PER DETERMINARE IL GENITORE DEL GIORNO 
+// (Priorità: Vacanze -> Festività Alternate -> Turni/Cambi)
 // -------------------------------------------------------------
 function getParentForDateWithVacanze(date) {
   const dateKey = turniMgr.formatDateKey(date);
 
-  // 1. Priorità: Vacanze
+  // 1. Priorità Massima: Vacanze
   if (vacanzeMgr && vacanzeMgr.vacanze) {
     const vacanzaMatch = vacanzeMgr.vacanze.find(v => dateKey >= v.dataInizio && dateKey <= v.dataFine);
     if (vacanzaMatch) {
@@ -35,17 +38,31 @@ function getParentForDateWithVacanze(date) {
         parent: vacanzaMatch.assegnatoA, 
         isOverride: false, 
         isVacanza: true, 
+        isFestivita: false,
         titoloVacanza: vacanzaMatch.titolo 
       };
     }
   }
 
-  // 2. Turni e Cambi gestiti direttamente da TurniManager
+  // 2. Seconda Priorità: Festività Alternate Pluriannuali
+  const festivita = festivitaManager.getFestivitaForDate(date);
+  if (festivita && festivita.isFestivita) {
+    return {
+      parent: festivita.parent,
+      isOverride: false,
+      isVacanza: false,
+      isFestivita: true,
+      nomeFestivita: festivita.nome
+    };
+  }
+
+  // 3. Turni e Cambi gestiti direttamente da TurniManager
   const status = turniMgr.getParentForDate(date);
   return {
     parent: status.parent,
     isOverride: status.isOverride,
-    isVacanza: false
+    isVacanza: false,
+    isFestivita: false
   };
 }
 
@@ -142,13 +159,14 @@ window.changeMonth = function(delta) {
 };
 
 window.resetOverrides = async function() {
-  if (confirm("Vuoi cancellare tutti i dati salvati (cambi, spese, vacanze, note, salute)?")) {
+  if (confirm("Vuoi cancellare tutti i dati salvati (cambi, spese, vacanze, note, salute, festività)?")) {
     turniMgr.setData({}, {});
     notes = {};
     speseMgr.setSpese([]);
     logisticaMgr.setPassaggi({});
     saluteMgr.setSchede({});
     vacanzeMgr.setVacanze([]);
+    festivitaManager.setCustomRules({});
     await saveDataToFirestore();
     render();
     alert("Tutti i dati sono stati ripristinati!");
@@ -167,6 +185,9 @@ onSnapshot(docRef, (docSnap) => {
     logisticaMgr.setPassaggi(data.passaggi || {});
     saluteMgr.setSchede(data.salute || {});
     vacanzeMgr.setVacanze(data.vacanze || []);
+    if (data.festivitaRules) {
+      festivitaManager.setCustomRules(data.festivitaRules);
+    }
   } else {
     turniMgr.setData({}, {});
     notes = {};
@@ -174,6 +195,7 @@ onSnapshot(docRef, (docSnap) => {
     logisticaMgr.setPassaggi({});
     saluteMgr.setSchede({});
     vacanzeMgr.setVacanze([]);
+    festivitaManager.setCustomRules({});
   }
   render();
 });
@@ -187,13 +209,59 @@ async function saveDataToFirestore() {
       spese: speseMgr.spese,
       passaggi: logisticaMgr.passaggi,
       salute: saluteMgr.schede,
-      vacanze: vacanzeMgr.vacanze
+      vacanze: vacanzeMgr.vacanze,
+      festivitaRules: festivitaManager.toJSON()
     });
   } catch (error) {
     console.error("Errore salvataggio Firestore:", error);
     alert("❌ Errore durante il salvataggio dei dati. Verifica la connessione.");
   }
 }
+
+// -------------------------------------------------------------
+// GESTIONE FESTIVITÀ ALTERNATE
+// -------------------------------------------------------------
+function renderFestivitaSettings() {
+  const container = document.getElementById('festivitaRulesContainer');
+  if (!container) return;
+
+  container.innerHTML = '';
+  const rulesKeys = ['natale', 'capodanno', 'epifania', 'pasqua', 'compleanno_valerio', 'ferragosto'];
+
+  rulesKeys.forEach(key => {
+    const rule = festivitaManager.getRule(key);
+    const div = document.createElement('div');
+    div.className = 'form-group';
+    div.innerHTML = `
+      <label style="font-weight:600; font-size:0.85rem;">${rule.nome}</label>
+      <select id="festivita_${key}" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--surface-border); background:var(--surface-bg); color:var(--text-color);">
+        <option value="papa" ${rule.pari === 'papa' ? 'selected' : ''}>Anni Pari: Papà | Anni Dispari: Mamma</option>
+        <option value="mamma" ${rule.pari === 'mamma' ? 'selected' : ''}>Anni Pari: Mamma | Anni Dispari: Papà</option>
+      </select>
+    `;
+    container.appendChild(div);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btnSaveFestivita = document.getElementById('btnSaveFestivita');
+  if (btnSaveFestivita) {
+    btnSaveFestivita.addEventListener('click', async () => {
+      const rulesKeys = ['natale', 'capodanno', 'epifania', 'pasqua', 'compleanno_valerio', 'ferragosto'];
+      
+      rulesKeys.forEach(key => {
+        const select = document.getElementById(`festivita_${key}`);
+        if (select) {
+          festivitaManager.updateRule(key, select.value);
+        }
+      });
+
+      await saveDataToFirestore();
+      render();
+      alert('🎉 Regole festività salvate con successo!');
+    });
+  }
+});
 
 // -------------------------------------------------------------
 // GESTIONE LOGISTICA & PASSAGGI
@@ -314,10 +382,8 @@ function renderVacanze() {
 }
 
 // -------------------------------------------------------------
-// GESTIONE SALUTE & TERAPIE (AGGIORNATA)
+// GESTIONE SALUTE & TERAPIE
 // -------------------------------------------------------------
-
-// --- Farmaci Giornalieri ---
 window.addFarmaco = function() {
   const nomeInput = document.getElementById('farmacoNome');
   const orarioInput = document.getElementById('farmacoOrario');
@@ -350,7 +416,6 @@ window.deleteFarmaco = function(id) {
   saveDataToFirestore();
 };
 
-// --- Rubrica Contatti Rapidi ---
 window.addContattoUtile = function() {
   const nomeInput = document.getElementById('contattoNome');
   const ruoloInput = document.getElementById('contattoRuolo');
@@ -378,12 +443,10 @@ window.deleteContattoUtile = function(id) {
   saveDataToFirestore();
 };
 
-// --- Info Mediche & Pediatra ---
 window.saveSaluteInfo = function() {
   const nome = document.getElementById('salutePediatraNome')?.value || '';
   const tel = document.getElementById('salutePediatraTel')?.value || '';
   const orari = document.getElementById('salutePediatraOrari')?.value || '';
-
   const allergie = document.getElementById('saluteAllergie')?.value || '';
 
   saluteMgr.updatePediatra(nome, tel, orari);
@@ -393,7 +456,6 @@ window.saveSaluteInfo = function() {
   alert("Scheda medica aggiornata!");
 };
 
-// --- Visite Mediche ---
 window.addVisitaMedica = function() {
   const data = document.getElementById('visitaData')?.value;
   const desc = document.getElementById('visitaDesc')?.value.trim();
@@ -413,9 +475,7 @@ window.deleteVisitaMedica = function(id) {
   saveDataToFirestore();
 };
 
-// --- Render Modulo Salute Complete ---
 function renderSalute() {
-  // 1. Render Farmaci
   const farmaciList = document.getElementById('saluteFarmaciList');
   if (farmaciList) {
     farmaciList.innerHTML = '';
@@ -441,7 +501,6 @@ function renderSalute() {
     }
   }
 
-  // 2. Render Rubrica Contatti
   const contattiList = document.getElementById('saluteContattiList');
   if (contattiList) {
     contattiList.innerHTML = '';
@@ -465,7 +524,6 @@ function renderSalute() {
     }
   }
 
-  // 3. Render Form Pediatra & Info Mediche
   const p = saluteMgr.schede.pediatra || {};
   const g = saluteMgr.schede.infoGenerali || {};
 
@@ -479,7 +537,6 @@ function renderSalute() {
   if (pOrari) pOrari.value = p.orari || '';
   if (gAllergie) gAllergie.value = g.allergie || '';
 
-  // 4. Render Storico Visite
   const list = document.getElementById('saluteVisiteList');
   if (list) {
     list.innerHTML = '';
@@ -579,7 +636,7 @@ window.closeNoteModal = function() {
 };
 
 // -------------------------------------------------------------
-// SPESE (Con ridimensionamento automatico immagini per Firestore)
+// SPESE
 // -------------------------------------------------------------
 window.openSpesaModal = function() {
   const modal = document.getElementById('spesaModal');
@@ -597,7 +654,6 @@ window.closeSpesaModal = function() {
   if (modal) modal.classList.remove('active');
 };
 
-// Funzione di compressione immagine client-side
 function compressImage(file, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -818,6 +874,7 @@ function render() {
   renderSpeseSummary();
   renderVacanze();
   renderSalute();
+  renderFestivitaSettings();
   window.calculateStats();
 }
 
@@ -900,6 +957,9 @@ function renderGrid() {
       
       if (status.isVacanza) {
         badge.innerHTML = `<span>${label} 🏖️</span>`;
+      } else if (status.isFestivita) {
+        badge.classList.add('festivita');
+        badge.innerHTML = `<span>${label} 🎄</span><span class="badge-changed" style="font-size:0.65rem;">${status.nomeFestivita}</span>`;
       } else if (status.isOverride) {
         badge.innerHTML = `<span>${label}</span><span class="badge-changed">Cambio</span>`;
       } else {
@@ -954,8 +1014,12 @@ function renderList() {
       const badge = document.createElement('div');
       badge.className = `badge ${status.parent}`;
       let label = status.parent === 'papa' ? 'Papà' : 'Mamma';
+      
       if (status.isVacanza) {
         badge.innerHTML = `<span>${label} 🏖️</span>`;
+      } else if (status.isFestivita) {
+        badge.classList.add('festivita');
+        badge.innerHTML = `<span>${label} 🎄</span><span class="badge-changed" style="font-size:0.65rem;">${status.nomeFestivita}</span>`;
       } else if (status.isOverride) {
         badge.innerHTML = `<span>${label}</span><span class="badge-changed">Cambio</span>`;
       } else {
