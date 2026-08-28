@@ -1,67 +1,50 @@
-export class VacanzeManager {
+export class SpeseManager {
   constructor() {
-    this.vacanze = [];
+    this.spese = []; 
   }
 
-  _generateId() {
-    return `vacanza_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  setSpese(speseData = []) {
+    this.spese = speseData || [];
   }
 
-  setVacanze(data) {
-    this.vacanze = Array.isArray(data) ? data : [];
-    this._sortVacanze();
-  }
-
-  getVacanze() {
-    return this.vacanze;
-  }
-
-  _sortVacanze() {
-    this.vacanze.sort((a, b) => new Date(a.dataInizio) - new Date(b.dataInizio));
-  }
-
-  addVacanzeBlock(titolo = '', dataInizio = '', dataFine = '', assegnatoA = 'papa') {
-    const cleanTitolo = titolo.trim();
-    if (!cleanTitolo || !dataInizio || !dataFine) {
-      console.warn("Dati vacanza incompleti:", { titolo, dataInizio, dataFine });
-      return null;
-    }
-
-    const start = new Date(dataInizio);
-    const end = new Date(dataFine);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
-      console.warn("Intervallo date vacanze non valido:", { dataInizio, dataFine });
-      return null;
-    }
-
-    const newBlock = {
-      id: this._generateId(),
-      titolo: cleanTitolo,
-      dataInizio,
-      dataFine,
-      assegnatoA: assegnatoA === 'mamma' ? 'mamma' : 'papa'
+  addSpesa(descrizione, importo, pagatoDa, categoria = 'scuola', ricevutaBase64 = null, data = new Date()) {
+    const nuovaSpesa = {
+      id: 'spesa_' + Date.now().toString(),
+      data: typeof data === 'string' ? data : data.toISOString().split('T')[0],
+      descrizione,
+      importo: parseFloat(importo),
+      pagatoDa, // 'papa' o 'mamma'
+      categoria, // 'scuola', 'salute', 'sport', 'altro'
+      ricevuta: ricevutaBase64, // Stringa base64 dell'immagine
+      approvato: true
     };
-
-    this.vacanze.push(newBlock);
-    this._sortVacanze();
-    return newBlock;
+    this.spese.push(nuovaSpesa);
+    return this.spese;
   }
 
-  deleteVacanzeBlock(id) {
-    this.vacanze = this.vacanze.filter(v => v.id !== id);
-    return this.vacanze;
+  deleteSpesa(id) {
+    this.spese = this.spese.filter(s => s.id !== id);
+    return this.spese;
   }
 
-  getVacanzaForDate(dateKey) {
-    if (!dateKey) return null;
-    
-    return this.vacanze.find(v => {
-      return dateKey >= v.dataInizio && dateKey <= v.dataFine;
-    }) || null;
-  }
+  calculateSaldo() {
+    let totalePapa = 0;
+    let totaleMamma = 0;
 
-  toJSON() {
-    return this.vacanze;
+    this.spese.forEach(spesa => {
+      if (spesa.pagatoDa === 'papa') totalePapa += spesa.importo;
+      if (spesa.pagatoDa === 'mamma') totaleMamma += spesa.importo;
+    });
+
+    const totaleGenerale = totalePapa + totaleMamma;
+    const quotaSpettante = totaleGenerale / 2;
+    const differenza = totalePapa - quotaSpettante; // Positivo = Papà deve ricevere, Negativo = Papà deve dare
+
+    if (differenza > 0) {
+      return { debitore: 'mamma', creditore: 'papa', importo: differenza, totalePapa, totaleMamma };
+    } else if (differenza < 0) {
+      return { debitore: 'papa', creditore: 'mamma', importo: Math.abs(differenza), totalePapa, totaleMamma };
+    }
+    return { debitore: null, creditore: null, importo: 0, totalePapa, totaleMamma };
   }
 }
