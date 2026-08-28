@@ -4,6 +4,7 @@ import { TurniManager } from "./modules/TurniManager.js";
 import { SpeseManager } from "./modules/SpeseManager.js";
 import { LogisticaManager } from "./modules/LogisticaManager.js";
 import { SaluteManager } from "./modules/SaluteManager.js";
+import { VacanzeManager } from "./modules/VacanzeManager.js";
 import { ExportManager } from "./modules/ExportManager.js";
 
 // Inizializzazione Istanze Moduli
@@ -11,9 +12,11 @@ const turniMgr = new TurniManager();
 const speseMgr = new SpeseManager();
 const logisticaMgr = new LogisticaManager();
 const saluteMgr = new SaluteManager();
+const vacanzeMgr = new VacanzeManager();
 
 let notes = {};
 let activeDateKeyForNote = null;
+let activeDateKeyForLogistica = null;
 let currentView = 'grid'; 
 let currentDate = new Date();
 let deferredPrompt = null;
@@ -108,12 +111,13 @@ window.changeMonth = function(delta) {
 };
 
 window.resetOverrides = async function() {
-  if (confirm("Vuoi cancellare tutti i cambi manuali, le note e le spese salvate?")) {
+  if (confirm("Vuoi cancellare tutti i dati salvati (cambi, spese, vacanze, note)?")) {
     turniMgr.setData({}, {});
     notes = {};
     speseMgr.setSpese([]);
     logisticaMgr.setPassaggi({});
     saluteMgr.setSchede({});
+    vacanzeMgr.setVacanze([]);
     await saveDataToFirestore();
     render();
     alert("Tutti i dati sono stati ripristinati!");
@@ -131,12 +135,14 @@ onSnapshot(docRef, (docSnap) => {
     speseMgr.setSpese(data.spese || []);
     logisticaMgr.setPassaggi(data.passaggi || {});
     saluteMgr.setSchede(data.salute || {});
+    vacanzeMgr.setVacanze(data.vacanze || []);
   } else {
     turniMgr.setData({}, {});
     notes = {};
     speseMgr.setSpese([]);
     logisticaMgr.setPassaggi({});
     saluteMgr.setSchede({});
+    vacanzeMgr.setVacanze([]);
   }
   render();
 });
@@ -149,11 +155,192 @@ async function saveDataToFirestore() {
       manualCambi: turniMgr.manualCambi,
       spese: speseMgr.spese,
       passaggi: logisticaMgr.passaggi,
-      salute: saluteMgr.schede
+      salute: saluteMgr.schede,
+      vacanze: vacanzeMgr.vacanze
     });
   } catch (error) {
     console.error("Errore salvataggio Firestore:", error);
   }
+}
+
+// -------------------------------------------------------------
+// GESTIONE LOGISTICA & PASSAGGI
+// -------------------------------------------------------------
+window.openLogisticaModal = function(dateKey, event) {
+  if (event) event.stopPropagation();
+  activeDateKeyForLogistica = dateKey;
+
+  const data = logisticaMgr.getPassaggio(dateKey);
+  document.getElementById('logisticaModalTitle').textContent = `🚗 Passaggio del ${dateKey.split('-').reverse().join('/')}`;
+  document.getElementById('logisticaLuogo').value = data.luogo;
+  document.getElementById('logisticaOra').value = data.ora;
+  document.getElementById('logisticaNote').value = data.note;
+
+  document.getElementById('checkVestiti').checked = !!data.checklist.vestiti;
+  document.getElementById('checkCartella').checked = !!data.checklist.cartella;
+  document.getElementById('checkLibretto').checked = !!data.checklist.libretto;
+  document.getElementById('checkGiochi').checked = !!data.checklist.giochi;
+
+  document.getElementById('logisticaModal').classList.add('active');
+};
+
+window.closeLogisticaModal = function() {
+  document.getElementById('logisticaModal').classList.remove('active');
+  activeDateKeyForLogistica = null;
+};
+
+window.saveLogistica = function() {
+  if (!activeDateKeyForLogistica) return;
+
+  const luogo = document.getElementById('logisticaLuogo').value;
+  const ora = document.getElementById('logisticaOra').value;
+  const note = document.getElementById('logisticaNote').value;
+
+  const checklist = {
+    vestiti: document.getElementById('checkVestiti').checked,
+    cartella: document.getElementById('checkCartella').checked,
+    libretto: document.getElementById('checkLibretto').checked,
+    giochi: document.getElementById('checkGiochi').checked
+  };
+
+  logisticaMgr.savePassaggio(activeDateKeyForLogistica, luogo, ora, note, checklist);
+  saveDataToFirestore();
+  window.closeLogisticaModal();
+};
+
+// -------------------------------------------------------------
+// GESTIONE VACANZE
+// -------------------------------------------------------------
+window.openVacanzeModal = function() {
+  document.getElementById('vacanzaTitolo').value = '';
+  document.getElementById('vacanzaInizio').value = '';
+  document.getElementById('vacanzaFine').value = '';
+  document.getElementById('vacanzeModal').classList.add('active');
+};
+
+window.closeVacanzeModal = function() {
+  document.getElementById('vacanzeModal').classList.remove('active');
+};
+
+window.saveVacanzaBlock = function() {
+  const titolo = document.getElementById('vacanzaTitolo').value.trim();
+  const inizio = document.getElementById('vacanzaInizio').value;
+  const fine = document.getElementById('vacanzaFine').value;
+  const assegnato = document.getElementById('vacanzaAssegnato').value;
+
+  if (!titolo || !inizio || !fine) {
+    alert("Compila tutti i campi obbligatori per la vacanza!");
+    return;
+  }
+
+  vacanzeMgr.addVacanzeBlock(titolo, inizio, fine, assegnato);
+  saveDataToFirestore();
+  window.closeVacanzeModal();
+};
+
+window.deleteVacanzaBlock = function(id) {
+  if (confirm("Eliminare questo blocco vacanza?")) {
+    vacanzeMgr.deleteVacanzeBlock(id);
+    saveDataToFirestore();
+  }
+};
+
+function renderVacanze() {
+  const container = document.getElementById('vacanzeListContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (vacanzeMgr.vacanze.length === 0) {
+    container.innerHTML = `<p style="color:var(--text-muted); font-size:0.85rem;">Nessuna vacanza o festività programmata.</p>`;
+    return;
+  }
+
+  vacanzeMgr.vacanze.forEach(v => {
+    const card = document.createElement('div');
+    const color = v.assegnatoA === 'papa' ? 'var(--papa-color, #2563eb)' : 'var(--mamma-color, #ec4899)';
+    card.style.cssText = `background: var(--surface-bg, #f8fafc); border-left: 4px solid ${color}; padding: 10px; border-radius: 6px; border: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center;`;
+
+    const dInizio = v.dataInizio.split('-').reverse().join('/');
+    const dFine = v.dataFine.split('-').reverse().join('/');
+
+    card.innerHTML = `
+      <div>
+        <strong style="display:block; font-size:0.95rem;">${v.titolo}</strong>
+        <span style="font-size:0.8rem; color:var(--text-muted);">${dInizio} - ${dFine}</span>
+        <span style="font-size:0.75rem; font-weight:700; color:${color}; display:block; margin-top:2px;">Con ${v.assegnatoA === 'papa' ? 'Papà' : 'Mamma'}</span>
+      </div>
+      <button style="background:none; border:none; cursor:pointer;" onclick="deleteVacanzaBlock('${v.id}')">🗑️</button>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// -------------------------------------------------------------
+// GESTIONE SALUTE & VISITE
+// -------------------------------------------------------------
+window.saveSaluteInfo = function() {
+  const nome = document.getElementById('salutePediatraNome').value;
+  const tel = document.getElementById('salutePediatraTel').value;
+  const orari = document.getElementById('salutePediatraOrari').value;
+
+  const allergie = document.getElementById('saluteAllergie').value;
+  const terapie = document.getElementById('saluteTerapie').value;
+
+  saluteMgr.updatePediatra(nome, tel, orari);
+  saluteMgr.updateInfoGenerali('', allergie, terapie);
+
+  saveDataToFirestore();
+  alert("Scheda medica aggiornata!");
+};
+
+window.addVisitaMedica = function() {
+  const data = document.getElementById('visitaData').value;
+  const desc = document.getElementById('visitaDesc').value.trim();
+
+  if (!data || !desc) {
+    alert("Inserisci data e descrizione della visita!");
+    return;
+  }
+
+  saluteMgr.addVisita(data, desc, '');
+  saveDataToFirestore();
+  document.getElementById('visitaDesc').value = '';
+};
+
+window.deleteVisitaMedica = function(id) {
+  saluteMgr.deleteVisita(id);
+  saveDataToFirestore();
+};
+
+function renderSalute() {
+  const p = saluteMgr.schede.pediatra || {};
+  const g = saluteMgr.schede.infoGenerali || {};
+
+  const pNome = document.getElementById('salutePediatraNome');
+  const pTel = document.getElementById('salutePediatraTel');
+  const pOrari = document.getElementById('salutePediatraOrari');
+  const gAllergie = document.getElementById('saluteAllergie');
+  const gTerapie = document.getElementById('saluteTerapie');
+
+  if (pNome) pNome.value = p.nome || '';
+  if (pTel) pTel.value = p.telefono || '';
+  if (pOrari) pOrari.value = p.orari || '';
+  if (gAllergie) gAllergie.value = g.allergie || '';
+  if (gTerapie) gTerapie.value = g.terapie || '';
+
+  const list = document.getElementById('saluteVisiteList');
+  if (!list) return;
+  list.innerHTML = '';
+
+  (saluteMgr.schede.visite || []).forEach(v => {
+    const li = document.createElement('li');
+    li.style.cssText = "display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem;";
+    li.innerHTML = `
+      <span><strong>${v.data.split('-').reverse().join('/')}:</strong> ${v.descrizione}</span>
+      <button style="background:none; border:none; cursor:pointer;" onclick="deleteVisitaMedica('${v.id}')">🗑️</button>
+    `;
+    list.appendChild(li);
+  });
 }
 
 // -------------------------------------------------------------
@@ -235,7 +422,7 @@ window.closeNoteModal = function() {
 };
 
 // -------------------------------------------------------------
-// LOGICA E RENDERING DEL MODULO SPESE (ESPORTATE SU WINDOW)
+// SPESE
 // -------------------------------------------------------------
 window.openSpesaModal = function() {
   const modal = document.getElementById('spesaModal');
@@ -302,7 +489,6 @@ function renderSpeseSummary() {
   const tbody = document.getElementById('speseTableBody');
   if (!saldoBox || !tbody) return;
 
-  // Render Saldo
   const saldo = speseMgr.calculateSaldo();
   if (!saldo.debitore) {
     saldoBox.innerHTML = "<strong>Conti in pari</strong> (nessun conguaglio pendente)";
@@ -312,14 +498,12 @@ function renderSpeseSummary() {
     saldoBox.innerHTML = `<strong>${debitoreStr}</strong> deve a <strong>${creditoreStr}</strong>: <span style="color:var(--spesa-color, #ef4444); font-weight:800;">€ ${saldo.importo.toFixed(2)}</span>`;
   }
 
-  // Render Tabella Storico
   tbody.innerHTML = '';
   if (speseMgr.spese.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 12px; color: var(--text-muted);">Nessuna spesa registrata.</td></tr>`;
     return;
   }
 
-  // Ordina le spese dalla più recente
   const speseOrdinate = [...speseMgr.spese].sort((a, b) => new Date(b.data) - new Date(a.data));
 
   speseOrdinate.forEach(spesa => {
@@ -430,7 +614,7 @@ function setupDateSelectors() {
 }
 
 // -------------------------------------------------------------
-// RENDERING UI (GRIGLIA E LISTA)
+// RENDERING UI
 // -------------------------------------------------------------
 function render() {
   setupDateSelectors();
@@ -441,6 +625,8 @@ function render() {
   else renderList();
 
   renderSpeseSummary();
+  renderVacanze();
+  renderSalute();
   window.calculateStats();
 }
 
@@ -485,13 +671,26 @@ function renderGrid() {
     dayNumber.textContent = day;
     cellTop.appendChild(dayNumber);
 
+    const actionBtns = document.createElement('div');
+    actionBtns.style.display = 'flex';
+    actionBtns.style.gap = '2px';
+
+    const passaggioData = logisticaMgr.getPassaggio(dateKey);
+    const hasLogistica = passaggioData.luogo || passaggioData.ora;
+    const logisticaBtn = document.createElement('button');
+    logisticaBtn.className = `btn-note-trigger ${hasLogistica ? 'has-note' : ''}`;
+    logisticaBtn.innerHTML = '🚗';
+    logisticaBtn.onclick = (e) => window.openLogisticaModal(dateKey, e);
+    actionBtns.appendChild(logisticaBtn);
+
     const noteBtn = document.createElement('button');
     const hasNote = !!notes[dateKey];
     noteBtn.className = `btn-note-trigger ${hasNote ? 'has-note' : ''}`;
     noteBtn.innerHTML = hasNote ? '📝' : '➕';
     noteBtn.onclick = (e) => window.openNoteModal(dateKey, e);
-    cellTop.appendChild(noteBtn);
+    actionBtns.appendChild(noteBtn);
 
+    cellTop.appendChild(actionBtns);
     cell.appendChild(cellTop);
 
     if (notes[dateKey]) {
@@ -559,6 +758,12 @@ function renderList() {
       if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
       right.appendChild(badge);
     }
+
+    const logisticaBtn = document.createElement('button');
+    logisticaBtn.className = 'btn-note-trigger';
+    logisticaBtn.innerHTML = '🚗';
+    logisticaBtn.onclick = (e) => window.openLogisticaModal(dateKey, e);
+    right.appendChild(logisticaBtn);
 
     const noteBtn = document.createElement('button');
     const hasNote = !!notes[dateKey];
