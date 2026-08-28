@@ -4,7 +4,7 @@ import { TurniManager } from "./modules/TurniManager.js";
 import { SpeseManager } from "./modules/SpeseManager.js";
 import { LogisticaManager } from "./modules/LogisticaManager.js";
 import { SaluteManager } from "./modules/SaluteManager.js";
-import { VacanzeManager } from "./modules/VacanzeManager.js";
+import { VacanzeManager } from ".window.saveSaluteInfo/modules/VacanzeManager.js";
 import { ExportManager } from "./modules/ExportManager.js";
 import { FestivitaManager } from './modules/FestivitaManager.js';
 
@@ -446,10 +446,11 @@ window.deleteContattoUtile = function(id) {
 window.saveSaluteInfo = function() {
   const nome = document.getElementById('salutePediatraNome')?.value || '';
   const tel = document.getElementById('salutePediatraTel')?.value || '';
+  const via = document.getElementById('salutePediatraVia')?.value || '';
   const orari = document.getElementById('salutePediatraOrari')?.value || '';
   const allergie = document.getElementById('saluteAllergie')?.value || '';
 
-  saluteMgr.updatePediatra(nome, tel, orari);
+  saluteMgr.updatePediatra(nome, tel, via, orari);
   saluteMgr.updateInfoGenerali('', allergie, '');
 
   saveDataToFirestore();
@@ -529,11 +530,13 @@ function renderSalute() {
 
   const pNome = document.getElementById('salutePediatraNome');
   const pTel = document.getElementById('salutePediatraTel');
+  const pVia = document.getElementById('salutePediatraVia');
   const pOrari = document.getElementById('salutePediatraOrari');
   const gAllergie = document.getElementById('saluteAllergie');
 
   if (pNome) pNome.value = p.nome || '';
   if (pTel) pTel.value = p.telefono || '';
+  if (pVia) pVia.value = p.via || '';
   if (pOrari) pOrari.value = p.orari || '';
   if (gAllergie) gAllergie.value = g.allergie || '';
 
