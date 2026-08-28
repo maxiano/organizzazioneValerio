@@ -29,30 +29,31 @@ export class TurniManager {
     return 'mamma';
   }
 
-  getParentForDate(date) {
+getParentForDate(date) {
     const dateKey = this.formatDateKey(date);
-    const standard = this.getStandardParent(date);
-    
-    // Se c'è un override manuale impostato
+    const standardParent = this.getStandardParent(date);
+
+    // Se esiste una modifica manuale per questa data
     if (this.overrides[dateKey]) {
       const p = this.overrides[dateKey];
       const actualParent = p === 'none' ? null : p;
-      
-      // Un giorno è considerato "Cambio" (isOverride) se il genitore impostato 
-      // è diverso da quello di rotazione standard (oppure se tracciato in manualCambi)
-      const isOverride = actualParent !== standard || !!this.manualCambi[dateKey];
-      
-      return { parent: actualParent, isOverride };
+
+      // Il turno è un "Cambio" se il genitore impostato differisce da quello di rotazione standard
+      // OPPURE se è stato segnato esplicitamente in manualCambi
+      const isOverride = (actualParent !== standardParent) || !!this.manualCambi[dateKey];
+
+      return { parent: actualParent, isOverride: isOverride };
     }
 
-    return { parent: standard, isOverride: false };
+    // Rotazione standard senza modifiche
+    return { parent: standardParent, isOverride: false };
   }
 
   toggleDay(dateKey) {
     const date = new Date(dateKey + 'T00:00:00');
     const currentStatus = this.getParentForDate(date);
 
-    // Ciclo di selezione: Papa -> Mamma -> Nessuno -> Papa
+    // Ciclo di selezione manuale: Papà -> Mamma -> Nessuno -> Papà
     if (currentStatus.parent === 'papa') {
       this.overrides[dateKey] = 'mamma';
     } else if (currentStatus.parent === 'mamma') {
@@ -61,7 +62,7 @@ export class TurniManager {
       this.overrides[dateKey] = 'papa';
     }
 
-    // Tracciamo anche l'azione esplicita in manualCambi se necessario
+    // Segna la data come modifica manuale esplicita
     this.manualCambi[dateKey] = true;
 
     return { overrides: this.overrides, manualCambi: this.manualCambi };
