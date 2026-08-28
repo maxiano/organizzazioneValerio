@@ -235,18 +235,22 @@ window.closeNoteModal = function() {
 };
 
 // -------------------------------------------------------------
-// LOGICA E RENDERING DEL MODULO SPESE
+// LOGICA E RENDERING DEL MODULO SPESE (ESPORTATE SU WINDOW)
 // -------------------------------------------------------------
 window.openSpesaModal = function() {
+  const modal = document.getElementById('spesaModal');
+  if (!modal) return;
+
   document.getElementById('spesaDesc').value = '';
   document.getElementById('spesaImporto').value = '';
   document.getElementById('spesaData').value = new Date().toISOString().split('T')[0];
   document.getElementById('spesaRicevutaInput').value = '';
-  document.getElementById('spesaModal').classList.add('active');
+  modal.classList.add('active');
 };
 
 window.closeSpesaModal = function() {
-  document.getElementById('spesaModal').classList.remove('active');
+  const modal = document.getElementById('spesaModal');
+  if (modal) modal.classList.remove('active');
 };
 
 window.saveSpesa = function() {
@@ -268,13 +272,13 @@ window.saveSpesa = function() {
     reader.onload = function(e) {
       speseMgr.addSpesa(desc, importo, pagatoDa, categoria, e.target.result, data);
       saveDataToFirestore();
-      closeSpesaModal();
+      window.closeSpesaModal();
     };
     reader.readAsDataURL(file);
   } else {
     speseMgr.addSpesa(desc, importo, pagatoDa, categoria, null, data);
     saveDataToFirestore();
-    closeSpesaModal();
+    window.closeSpesaModal();
   }
 };
 
