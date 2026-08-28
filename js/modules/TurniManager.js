@@ -1,109 +1,55 @@
+// modules/TurniManager.js
+
 export class TurniManager {
-  constructor(startDateA = null) {
-    let baseDate;
-    if (startDateA) {
-      baseDate = new Date(startDateA);
-    }
-    
-    if (!baseDate || isNaN(baseDate.getTime())) {
-      baseDate = new Date('2024-01-01T00:00:00');
-    }
-
-    baseDate.setHours(0, 0, 0, 0);
-    this.startDateA = baseDate;
-
-    this.overrides = {};
-    this.manualCambi = {};
+  constructor() {
+    this.overrides = {}; // Registra i cambi manuali
+    this.startDate = new Date('2024-01-01'); // Data di riferimento per l'alternanza
   }
 
-  setData(overrides = {}, manualCambi = {}) {
-    this.overrides = overrides && typeof overrides === 'object' ? overrides : {};
-    this.manualCambi = manualCambi && typeof manualCambi === 'object' ? manualCambi : {};
+  // Calcola il genitore in base alla data
+  getParentForDate(date) {
+    const dateKey = this.formatDateKey(date);
+    
+    // Controlla se c'è un cambio manuale (override)
+    if (this.overrides[dateKey]) {
+      return { parent: this.overrides[dateKey], isOverride: true };
+    }
+
+    // Calcolo del ciclo alternato (es. a settimane o giorni alterni)
+    const diffTime = Math.abs(date - this.startDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const parent = (Math.floor(diffDays / 7) % 2 === 0) ? 'papa' : 'mamma';
+
+    return { parent: parent, isOverride: false };
+  }
+
+  // Inverte il genitore per una specifica data
+  toggleOverride(dateKey) {
+    if (!this.overrides) this.overrides = {};
+    
+    // Se già esisteva un cambio, si rimuove, altrimenti si imposta l'opposto
+    if (this.overrides[dateKey]) {
+      delete this.overrides[dateKey];
+    } else {
+      const [year, month, day] = dateKey.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      const current = this.getParentForDate(date);
+      this.overrides[dateKey] = current.parent === 'papa' ? 'mamma' : 'papa';
+    }
   }
 
   formatDateKey(date) {
-    const d = date instanceof Date && !isNaN(date) ? date : new Date(date);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
-  parseDateKey(dateKey) {
-    const parts = String(dateKey).split('-');
-    if (parts.length !== 3) return new Date();
-    const y = parseInt(parts[0], 10);
-    const m = parseInt(parts[1], 10) - 1;
-    const d = parseInt(parts[2], 10);
-    return new Date(y, m, d, 0, 0, 0, 0);
+  getData() {
+    return this.overrides;
   }
 
-  getStandardParent(date) {
-    const d = date instanceof Date ? new Date(date.getTime()) : this.parseDateKey(date);
-    d.setHours(0, 0, 0, 0);
-
-    const msPerDay = 86400000;
-    const daysDiff = Math.round((d - this.startDateA) / msPerDay);
-    const cycleDay = ((daysDiff % 14) + 14) % 14; 
-
-    const giorniPapa = [0, 3, 5, 6, 8, 10];
-    if (giorniPapa.includes(cycleDay)) {
-      return 'papa';
-    }
-
-    return 'mamma';
-  }
-
-  getParentForDate(date) {
-    const dateKey = typeof date === 'string' ? date : this.formatDateKey(date);
-    const standardParent = this.getStandardParent(date);
-
-    if (Object.prototype.hasOwnProperty.call(this.overrides, dateKey)) {
-      const p = this.overrides[dateKey];
-      const actualParent = p === 'none' ? null : p;
-      const isOverride = Boolean(this.manualCambi && this.manualCambi[dateKey] === true);
-
-      return { parent: actualParent, isOverride: isOverride };
-    }
-
-    return { parent: standardParent, isOverride: false };
-  }
-
-  toggleDay(dateKey) {
-    const currentStatus = this.getParentForDate(dateKey);
-    const standardParent = this.getStandardParent(dateKey);
-
-    let nextParent;
-
-    if (currentStatus.parent === 'papa') {
-      nextParent = 'mamma';
-    } else if (currentStatus.parent === 'mamma') {
-      nextParent = 'none';
-    } else {
-      nextParent = 'papa';
-    }
-
-    if (nextParent === standardParent) {
-      delete this.overrides[dateKey];
-      delete this.manualCambi[dateKey];
-    } else {
-      this.overrides[dateKey] = nextParent;
-      this.manualCambi[dateKey] = true;
-    }
-
-    return this.toJSON();
-  }
-
-  resetDayToStandard(dateKey) {
-    if (this.overrides[dateKey]) delete this.overrides[dateKey];
-    if (this.manualCambi[dateKey]) delete this.manualCambi[dateKey];
-    return this.toJSON();
-  }
-
-  toJSON() {
-    return {
-      overrides: this.overrides,
-      manualCambi: this.manualCambi
-    };
+  loadData(data) {
+    this.overrides = data || {};
   }
 }
