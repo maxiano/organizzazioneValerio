@@ -27,27 +27,7 @@ let deferredPrompt = null;
 function getParentForDateWithVacanze(date) {
   const dateKey = turniMgr.formatDateKey(date);
 
-  // 1. Priorità: Override manuale del singolo giorno
-  const overrideParent = turniMgr.overrides ? turniMgr.overrides[dateKey] : null;
-
-  if (overrideParent && (overrideParent === 'papa' || overrideParent === 'mamma' || overrideParent === 'none')) {
-    // Calcola il turno standard creando una data pulita (mezzanotte locale)
-    const cleanDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const standardParent = turniMgr.getStandardParent(cleanDate);
-    
-    const actualParent = overrideParent === 'none' ? null : overrideParent;
-
-    // È un "Cambio" SOLO SE c'è un genitore standard E il genitore manuale è diverso da quello standard
-    const isRealChange = standardParent !== null && actualParent !== standardParent;
-
-    return { 
-      parent: actualParent, 
-      isOverride: isRealChange, 
-      isVacanza: false 
-    };
-  }
-
-  // 2. Seconda priorità: Blocco Vacanza
+  // 1. Priorità: Vacanze
   if (vacanzeMgr && vacanzeMgr.vacanze) {
     const vacanzaMatch = vacanzeMgr.vacanze.find(v => dateKey >= v.dataInizio && dateKey <= v.dataFine);
     if (vacanzaMatch) {
@@ -60,16 +40,16 @@ function getParentForDateWithVacanze(date) {
     }
   }
 
-  // 3. Terza priorità: Rotazione standard
-  const standardStatus = turniMgr.getParentForDate(date);
+  // 2. Turni e Cambi gestiti direttamente da TurniManager
+  const status = turniMgr.getParentForDate(date);
   return {
-    parent: standardStatus.parent,
-    isOverride: false, // I giorni di rotazione normale NON sono cambi
+    parent: status.parent,
+    isOverride: status.isOverride,
     isVacanza: false
   };
 }
 
-// Esponi globalmente
+// Esponi per il debug
 window.getParentForDateWithVacanze = getParentForDateWithVacanze;
 
 // -------------------------------------------------------------
