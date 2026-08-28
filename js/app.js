@@ -2,12 +2,14 @@
 // APP.JS - MODULO PRINCIPALE APP GESTIONE TURNI E FAMIGLIA
 // =============================================================
 console.log("=== APP.JS È STATO CARICATO CORRETTAMENTE ===");
-// 1. IMPORT FIREBASE (Sempre in cima al file)
+
+// 1. IMPORT FIREBASE (Da firebase-config.js e CDN)
 import { db, docRef } from './firebase-config.js';
-// 2. IMPORT DELLE FUNZIONI FIRESTORE DALLA CDN (se devi leggere o scrivere dati)
-import { getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-// 3. Test di controllo (apri la Console del Browser con F12 per vederlo)
+import { setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
 console.log("🔥 Firebase caricato correttamente in app.js!", db);
+
+// 2. IMPORT DEI MANAGER DALLA CARTELLA MODULES
 import { TurniManager } from './modules/TurniManager.js';
 import { SpeseManager } from './modules/SpeseManager.js';
 import { LogisticaManager } from './modules/LogisticaManager.js';
@@ -16,8 +18,7 @@ import { VacanzeManager } from './modules/VacanzeManager.js';
 import { SaluteManager } from './modules/SaluteManager.js';
 import { ExportManager } from './modules/ExportManager.js';
 
-
-// Inizializzazione dei Manager
+// 3. INIZIALIZZAZIONE MANAGER & STATO LOCALE
 const turniMgr = new TurniManager();
 const speseMgr = new SpeseManager();
 const logisticaMgr = new LogisticaManager();
@@ -25,7 +26,6 @@ const saluteMgr = new SaluteManager();
 const vacanzeMgr = new VacanzeManager();
 const scuolaMgr = new ScuolaManager();
 
-// Stato locale dell'applicazione
 let currentDate = new Date();
 let currentView = 'grid'; // 'grid' | 'list'
 let notes = {}; 
@@ -35,9 +35,12 @@ let deferredPrompt = null;
 // LOGICA TURNI E VACANZE
 // -------------------------------------------------------------
 function getParentForDateWithVacanze(date) {
-  const vacanza = vacanzeMgr.getVacanzaForDate(date);
-  if (vacanza) {
-    return { parent: vacanza.genitore, isVacanza: true, nota: vacanza.titolo };
+  if (vacanzeMgr.getVacanzaForDate) {
+    const vacanza = vacanzeMgr.getVacanzaForDate(date);
+    if (vacanza) {
+      const parentName = vacanza.parent || vacanza.genitore;
+      return { parent: parentName, isVacanza: true, nota: vacanza.titolo };
+    }
   }
   return turniMgr.getParentForDate(date);
 }
@@ -64,45 +67,58 @@ window.installApp = async function() {
 };
 
 // -------------------------------------------------------------
-// FIRESTORE SYNC & SALVATAGGIO
+// FIRESTORE SYNC & SALVATAGGIO (CORRETTO CON docRef)
 // -------------------------------------------------------------
 async function saveDataToFirestore() {
   try {
     const dataToSave = {
-      turni: turniMgr.getData(),
-      spese: speseMgr.getData(),
-      logistica: logisticaMgr.getData(),
-      salute: saluteMgr.getData(),
-      vacanze: vacanzeMgr.getData(),
-      scuola: scuolaMgr.getData(),
+      turni: typeof turniMgr.getData === 'function' ? turniMgr.getData() : {},
+      spese: typeof speseMgr.getData === 'function' ? speseMgr.getData() : {},
+      logistica: typeof logisticaMgr.getData === 'function' ? logisticaMgr.getData() : {},
+      salute: typeof saluteMgr.getData === 'function' ? saluteMgr.getData() : {},
+      vacanze: typeof vacanzeMgr.getData === 'function' ? vacanzeMgr.getData() : {},
+      scuola: typeof scuolaMgr.getData === 'function' ? scuolaMgr.getData() : {},
       notes: notes
     };
     
-    if (window.db && window.doc && window.setDoc) {
-      const docRef = window.doc(window.db, "familyData", "main");
-      await window.setDoc(docRef, dataToSave, { merge: true });
+    console.log("📤 Salvataggio in corso su Firestore...", dataToSave);
+
+    if (db && docRef) {
+      await setDoc(docRef, dataToSave, { merge: true });
+      console.log("✅ Dati salvati con successo su Firestore!");
+    } else {
+      console.error("❌ Oggetto 'db' o 'docRef' non disponibile per il salvataggio.");
     }
   } catch (error) {
-    console.error("Errore durante il salvataggio su Firestore:", error);
+    console.error("❌ Errore durante il salvataggio su Firestore:", error);
   }
 }
 
 function initFirestoreSync() {
-  if (window.db && window.doc && window.onSnapshot) {
-    const docRef = window.doc(window.db, "familyData", "main");
-    window.onSnapshot(docRef, (docSnap) => {
+  if (db && docRef) {
+    console.log("🔄 Avvio sincronizzazione Firestore in tempo reale...");
+    onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.turni) turniMgr.loadData(data.turni);
-        if (data.spese) speseMgr.loadData(data.spese);
-        if (data.logistica) logisticaMgr.loadData(data.logistica);
-        if (data.salute) saluteMgr.loadData(data.salute);
-        if (data.vacanze) vacanzeMgr.loadData(data.vacanze);
-        if (data.scuola) scuolaMgr.loadData(data.scuola);
+        console.log("📥 Dati letti con successo da Firestore:", data);
+
+        if (data.turni && typeof turniMgr.loadData === 'function') turniMgr.loadData(data.turni);
+        if (data.spese && typeof speseMgr.loadData === 'function') speseMgr.loadData(data.spese);
+        if (data.logistica && typeof logisticaMgr.loadData === 'function') logisticaMgr.loadData(data.logistica);
+        if (data.salute && typeof saluteMgr.loadData === 'function') saluteMgr.loadData(data.salute);
+        if (data.vacanze && typeof vacanzeMgr.loadData === 'function') vacanzeMgr.loadData(data.vacanze);
+        if (data.scuola && typeof scuolaMgr.loadData === 'function') scuolaMgr.loadData(data.scuola);
         if (data.notes) notes = data.notes;
+
         render();
+      } else {
+        console.warn("⚠️ Il documento specificato in 'docRef' non esiste ancora. Verrà creato al primo salvataggio.");
       }
+    }, (error) => {
+      console.error("❌ Errore nella sincronizzazione Firestore:", error);
     });
+  } else {
+    console.error("❌ Errore: 'db' o 'docRef' non definiti correttamente.");
   }
 }
 
@@ -155,11 +171,11 @@ window.openLogisticaModal = function(dateKey, event) {
   const modal = document.getElementById('logisticaModal');
   if (!modal) return;
 
-  const data = logisticaMgr.getPassaggio(dateKey);
+  const data = logisticaMgr.getPassaggio ? logisticaMgr.getPassaggio(dateKey) : {};
   document.getElementById('logisticaDateKey').value = dateKey;
-  document.getElementById('logisticaOraInput').value = data.ora || '';
-  document.getElementById('logisticaLuogoInput').value = data.luogo || '';
-  document.getElementById('logisticaNoteInput').value = data.note || '';
+  document.getElementById('logisticaOraInput').value = data?.ora || '';
+  document.getElementById('logisticaLuogoInput').value = data?.luogo || '';
+  document.getElementById('logisticaNoteInput').value = data?.note || '';
 
   modal.classList.add('active');
 };
@@ -175,7 +191,9 @@ window.saveLogistica = async function() {
   const luogo = document.getElementById('logisticaLuogoInput').value.trim();
   const noteText = document.getElementById('logisticaNoteInput').value.trim();
 
-  logisticaMgr.setPassaggio(dateKey, { ora, luogo, note: noteText });
+  if (typeof logisticaMgr.setPassaggio === 'function') {
+    logisticaMgr.setPassaggio(dateKey, { ora, luogo, note: noteText });
+  }
   await saveDataToFirestore();
   window.closeLogisticaModal();
   render();
@@ -246,7 +264,7 @@ window.saveSpesa = async function() {
   }
 
   let ricevutaBase64 = null;
-  const file = fileInput.files[0];
+  const file = fileInput?.files?.[0];
   if (file) {
     try {
       ricevutaBase64 = await compressImage(file);
@@ -292,7 +310,7 @@ function renderSpeseSummary() {
   const tbody = document.getElementById('speseTableBody');
   if (!saldoBox || !tbody) return;
 
-  const saldo = speseMgr.calculateSaldo();
+  const saldo = typeof speseMgr.calculateSaldo === 'function' ? speseMgr.calculateSaldo() : { debitore: null, importo: 0 };
   if (!saldo.debitore) {
     saldoBox.innerHTML = "<strong>Conti in pari</strong> (nessun conguaglio pendente)";
   } else {
@@ -302,18 +320,19 @@ function renderSpeseSummary() {
   }
 
   tbody.innerHTML = '';
-  if (speseMgr.spese.length === 0) {
+  const elencoSpese = speseMgr.spese || [];
+  if (elencoSpese.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 12px; color: var(--text-muted);">Nessuna spesa registrata.</td></tr>`;
     return;
   }
 
-  const speseOrdinate = [...speseMgr.spese].sort((a, b) => new Date(b.data) - new Date(a.data));
+  const speseOrdinate = [...elencoSpese].sort((a, b) => new Date(b.data) - new Date(a.data));
 
   speseOrdinate.forEach(spesa => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '1px solid var(--surface-border)';
 
-    const formattedDate = spesa.data.split('-').reverse().join('/');
+    const formattedDate = spesa.data ? spesa.data.split('-').reverse().join('/') : '-';
     const pagatoStr = spesa.pagatoDa === 'papa' ? 'Papà' : 'Mamma';
     const badgeColor = spesa.pagatoDa === 'papa' ? 'var(--papa-color, #2563eb)' : 'var(--mamma-color, #ec4899)';
     const ricevutaBtn = spesa.ricevuta 
@@ -343,7 +362,7 @@ function renderVacanze() {
   if (!vacanzeList) return;
   vacanzeList.innerHTML = '';
 
-  const vacanze = vacanzeMgr.getVacanze() || [];
+  const vacanze = vacanzeMgr.getVacanze ? vacanzeMgr.getVacanze() : [];
   if (vacanze.length === 0) {
     vacanzeList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem;">Nessun periodo di vacanza registrato.</p>`;
     return;
@@ -352,9 +371,10 @@ function renderVacanze() {
   vacanze.forEach(v => {
     const div = document.createElement('div');
     div.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem;`;
-    const dInizio = v.dataInizio.split('-').reverse().join('/');
-    const dFine = v.dataFine.split('-').reverse().join('/');
-    const genitoreStr = v.genitore === 'papa' ? 'Papà' : 'Mamma';
+    const dInizio = v.dataInizio ? v.dataInizio.split('-').reverse().join('/') : '-';
+    const dFine = v.dataFine ? v.dataFine.split('-').reverse().join('/') : '-';
+    const genitoreVal = v.genitore || v.parent;
+    const genitoreStr = genitoreVal === 'papa' ? 'Papà' : 'Mamma';
 
     div.innerHTML = `
       <div>
@@ -368,7 +388,7 @@ function renderVacanze() {
 }
 
 window.deleteVacanza = async function(id) {
-  vacanzeMgr.deleteVacanza(id);
+  if (typeof vacanzeMgr.deleteVacanza === 'function') vacanzeMgr.deleteVacanza(id);
   await saveDataToFirestore();
   render();
 };
@@ -378,7 +398,7 @@ function renderSalute() {
   if (!saluteList) return;
   saluteList.innerHTML = '';
 
-  const salute = saluteMgr.getFarmaci() || [];
+  const salute = saluteMgr.getFarmaci ? saluteMgr.getFarmaci() : [];
   if (salute.length === 0) {
     saluteList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem;">Nessun farmaco o appuntamento registrato.</p>`;
     return;
@@ -399,7 +419,7 @@ function renderSalute() {
 }
 
 window.deleteFarmaco = async function(id) {
-  saluteMgr.deleteFarmaco(id);
+  if (typeof saluteMgr.deleteFarmaco === 'function') saluteMgr.deleteFarmaco(id);
   await saveDataToFirestore();
   render();
 };
@@ -666,11 +686,15 @@ function renderScuola() {
 // ESPORTAZIONE & STATISTICHE
 // -------------------------------------------------------------
 window.exportToExcel = function() {
-  ExportManager.exportToExcel(currentDate, (d) => getParentForDateWithVacanze(d), notes);
+  if (ExportManager && typeof ExportManager.exportToExcel === 'function') {
+    ExportManager.exportToExcel(currentDate, (d) => getParentForDateWithVacanze(d), notes);
+  }
 };
 
 window.exportToICal = function() {
-  ExportManager.generateICalendar(currentDate, (d) => getParentForDateWithVacanze(d), notes);
+  if (ExportManager && typeof ExportManager.generateICalendar === 'function') {
+    ExportManager.generateICalendar(currentDate, (d) => getParentForDateWithVacanze(d), notes);
+  }
 };
 
 window.calculateStats = function() {
@@ -744,7 +768,7 @@ function setupDateSelectors() {
 }
 
 // -------------------------------------------------------------
-// RENDERING UI PRINCIPALE
+// RENDERING UI PRINCIPALE (GRID & LIST VVIEWS)
 // -------------------------------------------------------------
 function render() {
   setupDateSelectors();
@@ -758,6 +782,7 @@ function render() {
   renderVacanze();
   renderSalute();
   renderScuola();
+  
   window.calculateStats();
 }
 
@@ -806,19 +831,25 @@ function renderGrid() {
     actionBtns.style.display = 'flex';
     actionBtns.style.gap = '2px';
 
-    const passaggioData = logisticaMgr.getPassaggio(dateKey);
+    const passaggioData = logisticaMgr.getPassaggio ? logisticaMgr.getPassaggio(dateKey) : null;
     const hasLogistica = passaggioData && (passaggioData.luogo || passaggioData.ora);
     const logisticaBtn = document.createElement('button');
     logisticaBtn.className = `btn-note-trigger ${hasLogistica ? 'has-note' : ''}`;
     logisticaBtn.innerHTML = '🚗';
-    logisticaBtn.onclick = (e) => window.openLogisticaModal(dateKey, e);
+    logisticaBtn.onclick = (e) => {
+      e.stopPropagation();
+      window.openLogisticaModal(dateKey, e);
+    };
     actionBtns.appendChild(logisticaBtn);
 
     const noteBtn = document.createElement('button');
     const hasNote = !!notes[dateKey];
     noteBtn.className = `btn-note-trigger ${hasNote ? 'has-note' : ''}`;
     noteBtn.innerHTML = hasNote ? '📝' : '➕';
-    noteBtn.onclick = (e) => window.openNoteModal(dateKey, e);
+    noteBtn.onclick = (e) => {
+      e.stopPropagation();
+      window.openNoteModal(dateKey, e);
+    };
     actionBtns.appendChild(noteBtn);
 
     cellTop.appendChild(actionBtns);
@@ -907,14 +938,20 @@ function renderList() {
     const logisticaBtn = document.createElement('button');
     logisticaBtn.className = 'btn-note-trigger';
     logisticaBtn.innerHTML = '🚗';
-    logisticaBtn.onclick = (e) => window.openLogisticaModal(dateKey, e);
+    logisticaBtn.onclick = (e) => {
+      e.stopPropagation();
+      window.openLogisticaModal(dateKey, e);
+    };
     right.appendChild(logisticaBtn);
 
     const noteBtn = document.createElement('button');
     const hasNote = !!notes[dateKey];
     noteBtn.className = `btn-note-trigger ${hasNote ? 'has-note' : ''}`;
     noteBtn.innerHTML = hasNote ? '📝' : '➕';
-    noteBtn.onclick = (e) => window.openNoteModal(dateKey, e);
+    noteBtn.onclick = (e) => {
+      e.stopPropagation();
+      window.openNoteModal(dateKey, e);
+    };
     right.appendChild(noteBtn);
 
     item.appendChild(left);
@@ -925,6 +962,64 @@ function renderList() {
   }
 }
 
-// Avvio Inizializzazione
-initFirestoreSync();
-render();
+// -------------------------------------------------------------
+// EVENT LISTENERS E INIZIALIZZAZIONE DOM
+// -------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+  console.log("🚀 Inizializzazione Listener DOM.");
+
+  // Avvia l'ascolto Firestore in tempo reale
+  initFirestoreSync();
+
+  // Navigation Buttons
+  document.getElementById('btnPrevMonth')?.addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    render();
+  });
+
+  document.getElementById('btnNextMonth')?.addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    render();
+  });
+
+  // Selectors Mese e Anno
+  document.getElementById('monthSelect')?.addEventListener('change', (e) => {
+    currentDate.setMonth(parseInt(e.target.value, 10));
+    render();
+  });
+
+  document.getElementById('yearSelect')?.addEventListener('change', (e) => {
+    currentDate.setFullYear(parseInt(e.target.value, 10));
+    render();
+  });
+
+  // Togglers Vista (Griglia / Lista)
+  document.getElementById('btnViewGrid')?.addEventListener('click', () => {
+    currentView = 'grid';
+    render();
+  });
+
+  document.getElementById('btnViewList')?.addEventListener('click', () => {
+    currentView = 'list';
+    render();
+  });
+
+  // Tema
+  document.getElementById('themeToggleBtn')?.addEventListener('click', () => {
+    document.body.classList.toggle('dark-theme');
+  });
+
+  // Pulsanti Esportazione
+  document.getElementById('btnExportExcel')?.addEventListener('click', window.exportToExcel);
+  document.getElementById('btnExportICal')?.addEventListener('click', window.exportToICal);
+
+  // Filtri date statistiche
+  document.getElementById('filterStartDate')?.addEventListener('change', window.calculateStats);
+  document.getElementById('filterEndDate')?.addEventListener('change', window.calculateStats);
+
+  // Pulsante apertura Modal Spesa
+  document.getElementById('btnOpenSpesaModal')?.addEventListener('click', window.openSpesaModal);
+
+  // Renderizazione Iniziale
+  render();
+});
