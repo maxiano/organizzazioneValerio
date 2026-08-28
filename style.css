@@ -869,3 +869,20 @@ body {
   background: #dc2626;
   box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
 }
+/* Tematizzazione Modulo Festività */
+.module-section.festivita-module::before {
+  background: #f59e0b; /* Colore Ambra / Festivo */
+}
+
+.event-badge.festivita {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .event-badge.festivita {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.3);
+}
