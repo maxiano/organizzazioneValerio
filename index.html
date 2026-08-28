@@ -145,6 +145,48 @@
     </div>
   </section>
 
+  <!-- SEZIONE VACANZE E FESTIVITÀ -->
+  <section class="module-section" style="margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <h3>🏖️ Pianificatore Vacanze Estive & Festività</h3>
+      <button class="btn btn-primary" onclick="openVacanzeModal()">➕ Aggiungi Blocco Vacanza</button>
+    </div>
+    <div id="vacanzeListContainer" style="display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+      <!-- Inserito dinamicamente da JS -->
+    </div>
+  </section>
+
+  <!-- SEZIONE SALUTE E PEDIATRA -->
+  <section class="module-section" style="margin-top: 20px;">
+    <h3>🩺 Modulo Salute & Contatti Pediatra</h3>
+    <div style="display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 10px;">
+      <!-- Card Pediatra e Info -->
+      <div style="background: var(--surface-bg, #f8fafc); padding: 15px; border-radius: 8px; border: 1px solid var(--surface-border);">
+        <h4 style="margin-top: 0;">👨‍⚕️ Pediatra & Info Mediche</h4>
+        <label style="font-size:0.8rem;">Nome Pediatra: <input type="text" id="salutePediatraNome" placeholder="Dr. Rossi"></label>
+        <label style="font-size:0.8rem;">Telefono: <input type="text" id="salutePediatraTel" placeholder="333..."></label>
+        <label style="font-size:0.8rem;">Orari / Note: <input type="text" id="salutePediatraOrari" placeholder="Lun-Ven 9-12"></label>
+        <hr style="margin: 10px 0; border: none; border-top: 1px solid #ddd;">
+        <label style="font-size:0.8rem;">Allergie / Intolleranze: <input type="text" id="saluteAllergie" placeholder="Nessuna"></label>
+        <label style="font-size:0.8rem;">Terapie / Farmaci: <input type="text" id="saluteTerapie" placeholder="Aerosol all'occorrenza"></label>
+        <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="saveSaluteInfo()">💾 Salva Scheda Medica</button>
+      </div>
+
+      <!-- Storico Visite -->
+      <div style="background: var(--surface-bg, #f8fafc); padding: 15px; border-radius: 8px; border: 1px solid var(--surface-border);">
+        <h4 style="margin-top: 0;">📋 Storico Visite / Terapie</h4>
+        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+          <input type="date" id="visitaData" style="flex: 1;">
+          <input type="text" id="visitaDesc" placeholder="Motivo visita" style="flex: 2;">
+          <button class="btn btn-primary" onclick="addVisitaMedica()">➕</button>
+        </div>
+        <ul id="saluteVisiteList" style="list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto;">
+          <!-- Inserito dinamicamente da JS -->
+        </ul>
+      </div>
+    </div>
+  </section>
+
   <!-- MODALE PER GESTIONE NOTE ED EVENTI -->
   <div id="noteModal" class="modal-overlay">
     <div class="modal-content">
@@ -220,6 +262,49 @@
       <div class="modal-actions">
         <button onclick="closeSpesaModal()">Annulla</button>
         <button class="btn-primary" onclick="saveSpesa()">Salva Spesa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE LOGISTICA & CHECKLIST PASSAGGI -->
+  <div class="modal-overlay" id="logisticaModal">
+    <div class="modal-content">
+      <h3 id="logisticaModalTitle">🚗 Dettagli Passaggio</h3>
+      <label>Luogo del Cambio: <input type="text" id="logisticaLuogo" placeholder="Es. Scuola, Casa Papà..."></label>
+      <label>Ora del Cambio: <input type="time" id="logisticaOra"></label>
+      <label>Note aggiuntive: <input type="text" id="logisticaNote" placeholder="Es. Portare anche le scarpe da ginnastica"></label>
+      
+      <h4 style="margin-top: 15px; margin-bottom: 5px;">🎒 Checklist Cose da Portare:</h4>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label class="modal-checkbox-label"><input type="checkbox" id="checkVestiti"> 👕 Cambio Vestiti</label>
+        <label class="modal-checkbox-label"><input type="checkbox" id="checkCartella"> 📚 Cartella / Compiti</label>
+        <label class="modal-checkbox-label"><input type="checkbox" id="checkLibretto"> 🏥 Libretto Sanitario</label>
+        <label class="modal-checkbox-label"><input type="checkbox" id="checkGiochi"> 🧸 Giochi / Oggetti Personali</label>
+      </div>
+
+      <div class="modal-actions" style="margin-top: 20px;">
+        <button onclick="closeLogisticaModal()">Annulla</button>
+        <button class="btn-primary" onclick="saveLogistica()">Salva Passaggio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE VACANZE -->
+  <div class="modal-overlay" id="vacanzeModal">
+    <div class="modal-content">
+      <h3>🏖️ Aggiungi Blocco Vacanza</h3>
+      <label>Titolo: <input type="text" id="vacanzaTitolo" placeholder="Es. Settimana Mare, Vacanze Pasqua"></label>
+      <label>Da: <input type="date" id="vacanzaInizio"></label>
+      <label>A: <input type="date" id="vacanzaFine"></label>
+      <label>Assegnato a:
+        <select id="vacanzaAssegnato">
+          <option value="papa">Papà</option>
+          <option value="mamma">Mamma</option>
+        </select>
+      </label>
+      <div class="modal-actions">
+        <button onclick="closeVacanzeModal()">Annulla</button>
+        <button class="btn-primary" onclick="saveVacanzaBlock()">Salva Blocco</button>
       </div>
     </div>
   </div>
