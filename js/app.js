@@ -134,7 +134,7 @@ window.changeMonth = function(delta) {
 };
 
 window.resetOverrides = async function() {
-  if (confirm("Vuoi cancellare tutti i dati salvati (cambi, spese, vacanze, note)?")) {
+  if (confirm("Vuoi cancellare tutti i dati salvati (cambi, spese, vacanze, note, salute)?")) {
     turniMgr.setData({}, {});
     notes = {};
     speseMgr.setSpese([]);
@@ -306,26 +306,89 @@ function renderVacanze() {
 }
 
 // -------------------------------------------------------------
-// GESTIONE SALUTE & VISITE
+// GESTIONE SALUTE & TERAPIE (AGGIORNATA)
 // -------------------------------------------------------------
-window.saveSaluteInfo = function() {
-  const nome = document.getElementById('salutePediatraNome').value;
-  const tel = document.getElementById('salutePediatraTel').value;
-  const orari = document.getElementById('salutePediatraOrari').value;
 
-  const allergie = document.getElementById('saluteAllergie').value;
-  const terapie = document.getElementById('saluteTerapie').value;
+// --- Farmaci Giornalieri ---
+window.addFarmaco = function() {
+  const nomeInput = document.getElementById('farmacoNome');
+  const orarioInput = document.getElementById('farmacoOrario');
+  const noteInput = document.getElementById('farmacoNote');
+
+  const nome = nomeInput ? nomeInput.value.trim() : '';
+  const orario = orarioInput ? orarioInput.value : '';
+  const note = noteInput ? noteInput.value.trim() : '';
+
+  if (!nome) {
+    alert("Inserisci il nome del farmaco!");
+    return;
+  }
+
+  saluteMgr.addFarmaco(nome, orario, note);
+  saveDataToFirestore();
+
+  if (nomeInput) nomeInput.value = '';
+  if (orarioInput) orarioInput.value = '';
+  if (noteInput) noteInput.value = '';
+};
+
+window.toggleFarmacoAssunto = function(id) {
+  saluteMgr.toggleFarmaco(id);
+  saveDataToFirestore();
+};
+
+window.deleteFarmaco = function(id) {
+  saluteMgr.deleteFarmaco(id);
+  saveDataToFirestore();
+};
+
+// --- Rubrica Contatti Rapidi ---
+window.addContattoUtile = function() {
+  const nomeInput = document.getElementById('contattoNome');
+  const ruoloInput = document.getElementById('contattoRuolo');
+  const telInput = document.getElementById('contattoTel');
+
+  const nome = nomeInput ? nomeInput.value.trim() : '';
+  const ruolo = ruoloInput ? ruoloInput.value.trim() : '';
+  const tel = telInput ? telInput.value.trim() : '';
+
+  if (!nome || !tel) {
+    alert("Inserisci almeno il nome ed il numero di telefono!");
+    return;
+  }
+
+  saluteMgr.addContatto(nome, ruolo, tel);
+  saveDataToFirestore();
+
+  if (nomeInput) nomeInput.value = '';
+  if (ruoloInput) ruoloInput.value = '';
+  if (telInput) telInput.value = '';
+};
+
+window.deleteContattoUtile = function(id) {
+  saluteMgr.deleteContatto(id);
+  saveDataToFirestore();
+};
+
+// --- Info Mediche & Pediatra ---
+window.saveSaluteInfo = function() {
+  const nome = document.getElementById('salutePediatraNome')?.value || '';
+  const tel = document.getElementById('salutePediatraTel')?.value || '';
+  const orari = document.getElementById('salutePediatraOrari')?.value || '';
+
+  const allergie = document.getElementById('saluteAllergie')?.value || '';
 
   saluteMgr.updatePediatra(nome, tel, orari);
-  saluteMgr.updateInfoGenerali('', allergie, terapie);
+  saluteMgr.updateInfoGenerali('', allergie, '');
 
   saveDataToFirestore();
   alert("Scheda medica aggiornata!");
 };
 
+// --- Visite Mediche ---
 window.addVisitaMedica = function() {
-  const data = document.getElementById('visitaData').value;
-  const desc = document.getElementById('visitaDesc').value.trim();
+  const data = document.getElementById('visitaData')?.value;
+  const desc = document.getElementById('visitaDesc')?.value.trim();
 
   if (!data || !desc) {
     alert("Inserisci data e descrizione della visita!");
@@ -334,7 +397,7 @@ window.addVisitaMedica = function() {
 
   saluteMgr.addVisita(data, desc, '');
   saveDataToFirestore();
-  document.getElementById('visitaDesc').value = '';
+  if (document.getElementById('visitaDesc')) document.getElementById('visitaDesc').value = '';
 };
 
 window.deleteVisitaMedica = function(id) {
@@ -342,7 +405,59 @@ window.deleteVisitaMedica = function(id) {
   saveDataToFirestore();
 };
 
+// --- Render Modulo Salute Complete ---
 function renderSalute() {
+  // 1. Render Farmaci
+  const farmaciList = document.getElementById('saluteFarmaciList');
+  if (farmaciList) {
+    farmaciList.innerHTML = '';
+    const farmaci = saluteMgr.schede.farmaci || [];
+    if (farmaci.length === 0) {
+      farmaciList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; margin: 5px 0 0 0;">Nessun farmaco in programma per oggi.</p>`;
+    } else {
+      farmaci.forEach(f => {
+        const div = document.createElement('div');
+        div.style.cssText = `display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem; ${f.assunto ? 'opacity: 0.6;' : ''}`;
+        
+        div.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" ${f.assunto ? 'checked' : ''} onchange="toggleFarmacoAssunto('${f.id}')" style="cursor: pointer;">
+            <span style="${f.assunto ? 'text-decoration: line-through;' : ''}">
+              <strong>${f.orario ? f.orario + ' - ' : ''}${f.nome}</strong> ${f.note ? `(${f.note})` : ''}
+            </span>
+          </div>
+          <button style="background:none; border:none; cursor:pointer;" onclick="deleteFarmaco('${f.id}')">🗑️</button>
+        `;
+        farmaciList.appendChild(div);
+      });
+    }
+  }
+
+  // 2. Render Rubrica Contatti
+  const contattiList = document.getElementById('saluteContattiList');
+  if (contattiList) {
+    contattiList.innerHTML = '';
+    const contatti = saluteMgr.schede.contatti || [];
+    if (contatti.length === 0) {
+      contattiList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; margin: 5px 0 0 0;">Nessun contatto registrato.</p>`;
+    } else {
+      contatti.forEach(c => {
+        const div = document.createElement('div');
+        div.style.cssText = `display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem;`;
+        
+        div.innerHTML = `
+          <div>
+            <strong>${c.nome}</strong> ${c.ruolo ? `(${c.ruolo})` : ''}: 
+            <a href="tel:${c.telefono}" style="color: var(--primary-color, #2563eb); font-weight: 600; text-decoration: none;">📞 ${c.telefono}</a>
+          </div>
+          <button style="background:none; border:none; cursor:pointer;" onclick="deleteContattoUtile('${c.id}')">🗑️</button>
+        `;
+        contattiList.appendChild(div);
+      });
+    }
+  }
+
+  // 3. Render Form Pediatra & Info Mediche
   const p = saluteMgr.schede.pediatra || {};
   const g = saluteMgr.schede.infoGenerali || {};
 
@@ -350,27 +465,31 @@ function renderSalute() {
   const pTel = document.getElementById('salutePediatraTel');
   const pOrari = document.getElementById('salutePediatraOrari');
   const gAllergie = document.getElementById('saluteAllergie');
-  const gTerapie = document.getElementById('saluteTerapie');
 
   if (pNome) pNome.value = p.nome || '';
   if (pTel) pTel.value = p.telefono || '';
   if (pOrari) pOrari.value = p.orari || '';
   if (gAllergie) gAllergie.value = g.allergie || '';
-  if (gTerapie) gTerapie.value = g.terapie || '';
 
+  // 4. Render Storico Visite
   const list = document.getElementById('saluteVisiteList');
-  if (!list) return;
-  list.innerHTML = '';
-
-  (saluteMgr.schede.visite || []).forEach(v => {
-    const li = document.createElement('li');
-    li.style.cssText = "display: flex; justify-content: space-between; align-items:center; padding: 5px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem;";
-    li.innerHTML = `
-      <span><strong>${v.data.split('-').reverse().join('/')}:</strong> ${v.descrizione}</span>
-      <button style="background:none; border:none; cursor:pointer;" onclick="deleteVisitaMedica('${v.id}')">🗑️</button>
-    `;
-    list.appendChild(li);
-  });
+  if (list) {
+    list.innerHTML = '';
+    const visite = saluteMgr.schede.visite || [];
+    if (visite.length === 0) {
+      list.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; margin: 5px 0 0 0;">Nessuna visita programmata.</p>`;
+    } else {
+      visite.forEach(v => {
+        const li = document.createElement('li');
+        li.style.cssText = "display: flex; justify-content: space-between; align-items:center; padding: 5px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem;";
+        li.innerHTML = `
+          <span><strong>${v.data.split('-').reverse().join('/')}:</strong> ${v.descrizione}</span>
+          <button style="background:none; border:none; cursor:pointer;" onclick="deleteVisitaMedica('${v.id}')">🗑️</button>
+        `;
+        list.appendChild(li);
+      });
+    }
+  }
 }
 
 // -------------------------------------------------------------
@@ -765,7 +884,6 @@ function renderGrid() {
       cell.appendChild(eventBadge);
     }
 
-    // Utilizzo della nuova funzione con supporto Vacanze integrato
     const status = getParentForDateWithVacanze(date);
     if (status && status.parent) {
       const badge = document.createElement('div');
