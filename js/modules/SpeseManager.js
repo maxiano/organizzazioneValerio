@@ -3,6 +3,25 @@ export class SpeseManager {
     this.spese = [];
   }
 
+  // --- METODI PER FIRESTORE/APP.JS ---
+  getData() {
+    return this.spese;
+  }
+
+  loadData(speseData = []) {
+    this.setSpese(speseData);
+  }
+
+  // --- ALIAS PER COMPATIBILITÀ RETROATTIVA ---
+  getSpese() {
+    return this.getData();
+  }
+
+  setSpese(speseData = []) {
+    this.spese = Array.isArray(speseData) ? speseData : [];
+  }
+
+  // --- METODI UTILITY INTERNI ---
   _generateId() {
     return `spesa_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   }
@@ -14,14 +33,7 @@ export class SpeseManager {
     return `${year}-${month}-${day}`;
   }
 
-  setSpese(speseData = []) {
-    this.spese = Array.isArray(speseData) ? speseData : [];
-  }
-
-  getSpese() {
-    return this.spese;
-  }
-
+  // --- GESTIONE SPESE ---
   addSpesa(
     descrizione = '',
     importo = 0,
@@ -70,6 +82,7 @@ export class SpeseManager {
     return this.spese;
   }
 
+  // --- CALCOLO SALDO E FILTRI ---
   calculateSaldo() {
     let totalePapa = 0;
     let totaleMamma = 0;
