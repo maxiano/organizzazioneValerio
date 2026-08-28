@@ -31,19 +31,28 @@ export class TurniManager {
 
   getParentForDate(date) {
     const dateKey = this.formatDateKey(date);
-    const isCambio = !!this.manualCambi[dateKey];
-
+    const standard = this.getStandardParent(date);
+    
+    // Se c'è un override manuale impostato
     if (this.overrides[dateKey]) {
       const p = this.overrides[dateKey];
-      return { parent: p === 'none' ? null : p, isOverride: isCambio };
+      const actualParent = p === 'none' ? null : p;
+      
+      // Un giorno è considerato "Cambio" (isOverride) se il genitore impostato 
+      // è diverso da quello di rotazione standard (oppure se tracciato in manualCambi)
+      const isOverride = actualParent !== standard || !!this.manualCambi[dateKey];
+      
+      return { parent: actualParent, isOverride };
     }
-    return { parent: this.getStandardParent(date), isOverride: isCambio };
+
+    return { parent: standard, isOverride: false };
   }
 
   toggleDay(dateKey) {
     const date = new Date(dateKey + 'T00:00:00');
     const currentStatus = this.getParentForDate(date);
 
+    // Ciclo di selezione: Papa -> Mamma -> Nessuno -> Papa
     if (currentStatus.parent === 'papa') {
       this.overrides[dateKey] = 'mamma';
     } else if (currentStatus.parent === 'mamma') {
@@ -52,7 +61,9 @@ export class TurniManager {
       this.overrides[dateKey] = 'papa';
     }
 
-    delete this.manualCambi[dateKey];
+    // Tracciamo anche l'azione esplicita in manualCambi se necessario
+    this.manualCambi[dateKey] = true;
+
     return { overrides: this.overrides, manualCambi: this.manualCambi };
   }
 }
