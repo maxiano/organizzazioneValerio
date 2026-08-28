@@ -156,34 +156,67 @@
     </div>
   </section>
 
-  <!-- SEZIONE SALUTE E PEDIATRA -->
+  <!-- SEZIONE SALUTE E TERAPIE (AGGIORNATA) -->
   <section class="module-section" style="margin-top: 20px;">
-    <h3>🩺 Modulo Salute & Contatti Pediatra</h3>
-    <div style="display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 10px;">
-      <!-- Card Pediatra e Info -->
-      <div style="background: var(--surface-bg, #f8fafc); padding: 15px; border-radius: 8px; border: 1px solid var(--surface-border);">
-        <h4 style="margin-top: 0;">👨‍⚕️ Pediatra & Info Mediche</h4>
-        <label style="font-size:0.8rem;">Nome Pediatra: <input type="text" id="salutePediatraNome" placeholder="Dr. Rossi"></label>
-        <label style="font-size:0.8rem;">Telefono: <input type="text" id="salutePediatraTel" placeholder="333..."></label>
-        <label style="font-size:0.8rem;">Orari / Note: <input type="text" id="salutePediatraOrari" placeholder="Lun-Ven 9-12"></label>
-        <hr style="margin: 10px 0; border: none; border-top: 1px solid #ddd;">
-        <label style="font-size:0.8rem;">Allergie / Intolleranze: <input type="text" id="saluteAllergie" placeholder="Nessuna"></label>
-        <label style="font-size:0.8rem;">Terapie / Farmaci: <input type="text" id="saluteTerapie" placeholder="Aerosol all'occorrenza"></label>
-        <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="saveSaluteInfo()">💾 Salva Scheda Medica</button>
-      </div>
+    <h2>🏥 Modulo Salute & Terapie</h2>
 
-      <!-- Storico Visite -->
-      <div style="background: var(--surface-bg, #f8fafc); padding: 15px; border-radius: 8px; border: 1px solid var(--surface-border);">
-        <h4 style="margin-top: 0;">📋 Storico Visite / Terapie</h4>
-        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-          <input type="date" id="visitaData" style="flex: 1;">
-          <input type="text" id="visitaDesc" placeholder="Motivo visita" style="flex: 2;">
-          <button class="btn btn-primary" onclick="addVisitaMedica()">➕</button>
-        </div>
-        <ul id="saluteVisiteList" style="list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto;">
-          <!-- Inserito dinamicamente da JS -->
-        </ul>
+    <!-- 1. Farmaci Giornalieri -->
+    <div class="card" style="margin-bottom: 15px; background: var(--surface-bg, #f8fafc); padding: 15px; border-radius: 8px; border: 1px solid var(--surface-border);">
+      <h3>💊 Somministrazione Farmaci (Oggi)</h3>
+      <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
+        <input type="text" id="farmacoNome" placeholder="Nome farmaco" style="flex:2; min-width: 120px;">
+        <input type="time" id="farmacoOrario" style="flex:1; min-width: 80px;">
+        <input type="text" id="farmacoNote" placeholder="Note (es. a stomaco pieno)" style="flex:2; min-width: 120px;">
+        <button class="btn btn-primary" onclick="addFarmaco()">Aggiungi</button>
       </div>
+      <div id="saluteFarmaciList"></div>
+    </div>
+
+    <!-- 2. Rubrica Contatti Rapidi -->
+    <div class="card" style="margin-bottom: 15px; background: var(--surface-bg, #f8fafc); padding: 15px; border-radius: 8px; border: 1px solid var(--surface-border);">
+      <h3>📞 Rubrica Contatti Utili</h3>
+      <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
+        <input type="text" id="contattoNome" placeholder="Nome (es. Scuolabus, Baby Sitter)" style="flex:2; min-width: 130px;">
+        <input type="text" id="contattoRuolo" placeholder="Ruolo/Note" style="flex:1; min-width: 100px;">
+        <input type="tel" id="contattoTel" placeholder="Telefono" style="flex:1; min-width: 100px;">
+        <button class="btn btn-primary" onclick="addContattoUtile()">+ Aggiungi</button>
+      </div>
+      <div id="saluteContattiList"></div>
+    </div>
+
+    <!-- 3. Pediatra e Info Generali -->
+    <div class="card" style="margin-bottom: 15px; background: var(--surface-bg, #f8fafc); padding: 15px; border-radius: 8px; border: 1px solid var(--surface-border);">
+      <h3>🩺 Pediatra & Informazioni Mediche</h3>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+        <div>
+          <label style="font-size:0.8rem;">Nome Pediatra:</label>
+          <input type="text" id="salutePediatraNome" class="form-control" style="width: 100%;">
+        </div>
+        <div>
+          <label style="font-size:0.8rem;">Telefono Pediatra:</label>
+          <input type="tel" id="salutePediatraTel" class="form-control" style="width: 100%;">
+        </div>
+        <div>
+          <label style="font-size:0.8rem;">Orari Studio:</label>
+          <input type="text" id="salutePediatraOrari" class="form-control" style="width: 100%;">
+        </div>
+      </div>
+      <div style="margin-top: 10px;">
+        <label style="font-size:0.8rem;">Allergie / Intolleranze / Note Mediche:</label>
+        <textarea id="saluteAllergie" rows="2" class="form-control" style="width: 100%; box-sizing: border-box;"></textarea>
+      </div>
+      <button class="btn btn-primary" style="margin-top: 10px;" onclick="saveSaluteInfo()">💾 Salva Info Mediche</button>
+    </div>
+
+    <!-- 4. Visite Mediche -->
+    <div class="card" style="background: var(--surface-bg, #f8fafc); padding: 15px; border-radius: 8px; border: 1px solid var(--surface-border);">
+      <h3>📅 Prossime Visite & Controlli</h3>
+      <div style="display:flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
+        <input type="date" id="visitaData">
+        <input type="text" id="visitaDesc" placeholder="Descrizione visita (es. Dentista ore 16:00)" style="flex:1; min-width: 150px;">
+        <button class="btn btn-primary" onclick="addVisitaMedica()">Aggiungi</button>
+      </div>
+      <ul id="saluteVisiteList" style="list-style:none; padding:0; margin:0; max-height:200px; overflow-y:auto;"></ul>
     </div>
   </section>
 
