@@ -1,7 +1,6 @@
 export class TurniManager {
   constructor(startDateA = null) {
     // SE NON VIENE PASSATA UNA DATA, usiamo una data base fissa (es. 1 Gennaio 2024)
-    // Sostituisci '2024-01-01' con la data reale in cui è iniziata la rotazione Papà/Mamma
     const baseDate = startDateA ? new Date(startDateA) : new Date('2024-01-01T00:00:00');
     baseDate.setHours(0, 0, 0, 0);
     this.startDateA = baseDate;
@@ -10,6 +9,9 @@ export class TurniManager {
     this.manualCambi = {};
   }
 
+  /**
+   * Popola il manager con i dati scaricati da Firebase
+   */
   setData(overrides = {}, manualCambi = {}) {
     this.overrides = overrides || {};
     this.manualCambi = manualCambi || {};
@@ -27,10 +29,8 @@ export class TurniManager {
     d.setHours(0, 0, 0, 0);
 
     const msPerDay = 86400000;
-    // Calcolo della differenza in giorni
     const daysDiff = Math.floor((d - this.startDateA) / msPerDay);
 
-    // Gestione corretta dei giorni antecedenti alla data base
     const cycleDay = ((daysDiff % 14) + 14) % 14; 
 
     // Schema rotazione (Giorni Papà: 0, 3, 5, 6, 8, 10)
@@ -50,18 +50,17 @@ export class TurniManager {
       const p = this.overrides[dateKey];
       const actualParent = p === 'none' ? null : p;
 
-      // È un cambio SOLO SE il genitore manuale è diverso dal genitore standard di rotazione
-      const isOverride = actualParent !== standardParent;
+      // Mostra "CAMBIO" SOLO SE il flag manualCambi per questo giorno è impostato su true
+      const isOverride = Boolean(this.manualCambi && this.manualCambi[dateKey] === true);
 
       return { parent: actualParent, isOverride: isOverride };
     }
 
-    // Rotazione standard senza modifiche manuali
+    // Rotazione standard senza modifiche
     return { parent: standardParent, isOverride: false };
   }
 
   toggleDay(dateKey) {
-    // Parsing manuale della chiave YYYY-MM-DD per evitare problemi di fuso orario UTC/locale
     const parts = dateKey.split('-');
     const date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
     
@@ -76,8 +75,19 @@ export class TurniManager {
       this.overrides[dateKey] = 'papa';
     }
 
+    // Impostiamo il cambio manuale
     this.manualCambi[dateKey] = true;
 
-    return { overrides: this.overrides, manualCambi: this.manualCambi };
+    return this.toJSON();
+  }
+
+  /**
+   * Helper per salvare facilmente l'oggetto completo su Firebase
+   */
+  toJSON() {
+    return {
+      overrides: this.overrides,
+      manualCambi: this.manualCambi
+    };
   }
 }
