@@ -4,7 +4,7 @@ import { TurniManager } from "./modules/TurniManager.js";
 import { SpeseManager } from "./modules/SpeseManager.js";
 import { LogisticaManager } from "./modules/LogisticaManager.js";
 import { SaluteManager } from "./modules/SaluteManager.js";
-import { VacanzeManager } from ".window.saveSaluteInfo/modules/VacanzeManager.js";
+import { VacanzeManager } from "./modules/VacanzeManager.js";
 import { ExportManager } from "./modules/ExportManager.js";
 import { FestivitaManager } from './modules/FestivitaManager.js';
 
