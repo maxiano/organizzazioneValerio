@@ -6,6 +6,8 @@ console.log("=== APP.JS È STATO CARICATO CORRETTAMENTE ===");
 import { db, docRef } from './firebase-config.js';
 // 2. IMPORT DELLE FUNZIONI FIRESTORE DALLA CDN (se devi leggere o scrivere dati)
 import { getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+// 3. Test di controllo (apri la Console del Browser con F12 per vederlo)
+console.log("🔥 Firebase caricato correttamente in app.js!", db);
 import { TurniManager } from './modules/TurniManager.js';
 import { SpeseManager } from './modules/SpeseManager.js';
 import { LogisticaManager } from './modules/LogisticaManager.js';
