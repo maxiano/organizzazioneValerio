@@ -1,7 +1,7 @@
 // =============================================================
 // APP.JS - MODULO PRINCIPALE APP GESTIONE TURNI E FAMIGLIA
 // =============================================================
-
+console.log("=== APP.JS È STATO CARICATO CORRETTAMENTE ===");
 import { TurniManager } from './modules/TurniManager.js';
 import { SpeseManager } from './modules/SpeseManager.js';
 import { LogisticaManager } from './modules/LogisticaManager.js';
