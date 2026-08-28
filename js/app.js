@@ -2,13 +2,13 @@
 // APP.JS - MODULO PRINCIPALE APP GESTIONE TURNI E FAMIGLIA
 // =============================================================
 
-import { TurniManager } from './turniManager.js';
-import { SpeseManager } from './speseManager.js';
-import { LogisticaManager } from './logisticaManager.js';
-import { SaluteManager } from './saluteManager.js';
-import { VacanzeManager } from './vacanzeManager.js';
-import { ScuolaManager } from './scuolaManager.js';
-import { ExportManager } from './exportManager.js';
+import { TurniManager } from './modules/turniManager.js';
+import { SpeseManager } from './modules/speseManager.js';
+import { LogisticaManager } from './modules/logisticaManager.js';
+import { ScuolaManager } from './modules/scuolaManager.js';
+import { VacanzeManager } from './modules/vacanzeManager.js';
+import { SaluteManager } from './modules/saluteManager.js';
+import { ExportManager } from './modules/exportManager.js';
 
 // Inizializzazione dei Manager
 const turniMgr = new TurniManager();
