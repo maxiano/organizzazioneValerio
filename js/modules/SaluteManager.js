@@ -1,7 +1,7 @@
 export class SaluteManager {
   constructor() {
     this.schede = {
-      pediatra: { nome: '', telefono: '', orari: '' },
+      pediatra: { nome: '', telefono: '', via: '', orari: '' },
       infoGenerali: { gruppoSanguigno: '', allergie: '', terapie: '' },
       visite: []
     };
@@ -10,15 +10,20 @@ export class SaluteManager {
   setSchede(data) {
     if (data) {
       this.schede = {
-        pediatra: data.pediatra || { nome: '', telefono: '', orari: '' },
+        pediatra: {
+          nome: data.pediatra?.nome || '',
+          telefono: data.pediatra?.telefono || '',
+          via: data.pediatra?.via || '',
+          orari: data.pediatra?.orari || ''
+        },
         infoGenerali: data.infoGenerali || { gruppoSanguigno: '', allergie: '', terapie: '' },
         visite: data.visite || []
       };
     }
   }
 
-  updatePediatra(nome, telefono, orari) {
-    this.schede.pediatra = { nome, telefono, orari };
+  updatePediatra(nome, telefono, via, orari) {
+    this.schede.pediatra = { nome, telefono, via, orari };
   }
 
   updateInfoGenerali(gruppoSanguigno, allergie, terapie) {
