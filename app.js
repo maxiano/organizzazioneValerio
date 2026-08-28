@@ -133,21 +133,20 @@ window.switchView = function(view) {
   render();
 };
 
-// CAMBIA GENITORE AL CLICK SENZA "CAMBIO"
+// CAMBIA ASSEGNAZIONE AL CLICK (PAPA -> MAMMA -> NON ASSEGNATO -> PAPA)
 window.toggleDayOverride = function(dateKey) {
   const date = new Date(dateKey + 'T00:00:00');
   const currentStatus = getParentForDate(date);
 
-  let newParent = 'papa';
   if (currentStatus.parent === 'papa') {
-    newParent = 'mamma';
+    overrides[dateKey] = 'mamma';
   } else if (currentStatus.parent === 'mamma') {
-    newParent = 'papa';
+    overrides[dateKey] = 'none'; // Imposta su Non Assegnato
+  } else {
+    overrides[dateKey] = 'papa';
   }
 
-  overrides[dateKey] = newParent;
   delete manualCambi[dateKey];
-
   saveDataToFirestore();
   render();
 };
@@ -341,7 +340,8 @@ function getParentForDate(date) {
   const isCambio = !!manualCambi[dateKey];
 
   if (overrides[dateKey]) {
-    return { parent: overrides[dateKey], isOverride: isCambio };
+    const p = overrides[dateKey];
+    return { parent: p === 'none' ? null : p, isOverride: isCambio };
   }
   return { parent: getStandardParent(date), isOverride: isCambio };
 }
