@@ -26,20 +26,38 @@ let deferredPrompt = null;
 // -------------------------------------------------------------
 function getParentForDateWithVacanze(date) {
   const dateKey = turniMgr.formatDateKey(date);
-  
-  // 1. Priorità massima: Override manuale del singolo giorno
-  if (turniMgr.overrides && turniMgr.overrides[dateKey]) {
-    return { parent: turniMgr.overrides[dateKey], isOverride: true, isVacanza: false };
+  const defaultTurno = turniMgr.getParentForDate(date);
+
+  // 1. Override manuale del singolo giorno (solo se presente un valore valido)
+  const overrideParent = turniMgr.overrides ? turniMgr.overrides[dateKey] : null;
+
+  if (overrideParent && (overrideParent === 'papa' || overrideParent === 'mamma')) {
+    // Mostra "Cambio" solo se il genitore impostato manualmente è DIVERSO da quello di rotazione standard
+    const isRealChange = defaultTurno && defaultTurno.parent !== overrideParent;
+
+    return { 
+      parent: overrideParent, 
+      isOverride: isRealChange, 
+      isVacanza: false 
+    };
   }
 
   // 2. Seconda priorità: Blocco Vacanza
   if (vacanzeMgr && vacanzeMgr.vacanze) {
     const vacanzaMatch = vacanzeMgr.vacanze.find(v => dateKey >= v.dataInizio && dateKey <= v.dataFine);
     if (vacanzaMatch) {
-      return { parent: vacanzaMatch.assegnatoA, isOverride: false, isVacanza: true, titoloVacanza: vacanzaMatch.titolo };
+      return { 
+        parent: vacanzaMatch.assegnatoA, 
+        isOverride: false, 
+        isVacanza: true, 
+        titoloVacanza: vacanzaMatch.titolo 
+      };
     }
   }
 
+  // 3. Calcolo di rotazione standard
+  return defaultTurno;
+}
   // 3. Calcolo di rotazione standard
   return turniMgr.getParentForDate(date);
 }
