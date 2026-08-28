@@ -1,25 +1,68 @@
 export class SpeseManager {
   constructor() {
-    this.spese = []; 
+    this.spese = [];
+  }
+
+  _generateId() {
+    return `spesa_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  }
+
+  _formatDateLocal(d = new Date()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   setSpese(speseData = []) {
-    this.spese = speseData || [];
+    this.spese = Array.isArray(speseData) ? speseData : [];
   }
 
-  addSpesa(descrizione, importo, pagatoDa, categoria = 'scuola', ricevutaBase64 = null, data = new Date()) {
+  getSpese() {
+    return this.spese;
+  }
+
+  addSpesa(
+    descrizione = '',
+    importo = 0,
+    pagatoDa = 'papa',
+    categoria = 'scuola',
+    ricevutaBase64 = null,
+    data = null
+  ) {
+    const cleanDesc = descrizione.trim();
+    const numImporto = typeof importo === 'string'
+      ? parseFloat(importo.replace(',', '.'))
+      : parseFloat(importo);
+
+    if (!cleanDesc || isNaN(numImporto) || numImporto <= 0) {
+      console.warn("Dati spesa non validi:", { descrizione, importo });
+      return null;
+    }
+
+    let dataStr = '';
+    if (typeof data === 'string' && data.trim()) {
+      dataStr = data.trim();
+    } else if (data instanceof Date) {
+      dataStr = this._formatDateLocal(data);
+    } else {
+      dataStr = this._formatDateLocal(new Date());
+    }
+
     const nuovaSpesa = {
-      id: 'spesa_' + Date.now().toString(),
-      data: typeof data === 'string' ? data : data.toISOString().split('T')[0],
-      descrizione,
-      importo: parseFloat(importo),
-      pagatoDa, // 'papa' o 'mamma'
-      categoria, // 'scuola', 'salute', 'sport', 'altro'
-      ricevuta: ricevutaBase64, // Stringa base64 dell'immagine
+      id: this._generateId(),
+      data: dataStr,
+      descrizione: cleanDesc,
+      importo: Number(numImporto.toFixed(2)),
+      pagatoDa: pagatoDa === 'mamma' ? 'mamma' : 'papa',
+      categoria: categoria || 'altro',
+      ricevuta: ricevutaBase64 || null,
       approvato: true
     };
+
     this.spese.push(nuovaSpesa);
-    return this.spese;
+    this.spese.sort((a, b) => new Date(b.data) - new Date(a.data));
+    return nuovaSpesa;
   }
 
   deleteSpesa(id) {
@@ -32,19 +75,54 @@ export class SpeseManager {
     let totaleMamma = 0;
 
     this.spese.forEach(spesa => {
-      if (spesa.pagatoDa === 'papa') totalePapa += spesa.importo;
-      if (spesa.pagatoDa === 'mamma') totaleMamma += spesa.importo;
+      const imp = Number(spesa.importo) || 0;
+      if (spesa.pagatoDa === 'papa') totalePapa += imp;
+      if (spesa.pagatoDa === 'mamma') totaleMamma += imp;
     });
 
-    const totaleGenerale = totalePapa + totaleMamma;
-    const quotaSpettante = totaleGenerale / 2;
-    const differenza = totalePapa - quotaSpettante; // Positivo = Papà deve ricevere, Negativo = Papà deve dare
+    totalePapa = Number(totalePapa.toFixed(2));
+    totaleMamma = Number(totaleMamma.toFixed(2));
+
+    const totaleGenerale = Number((totalePapa + totaleMamma).toFixed(2));
+    const quotaSpettante = Number((totaleGenerale / 2).toFixed(2));
+    const differenza = Number((totalePapa - quotaSpettante).toFixed(2));
 
     if (differenza > 0) {
-      return { debitore: 'mamma', creditore: 'papa', importo: differenza, totalePapa, totaleMamma };
+      return {
+        debitore: 'mamma',
+        creditore: 'papa',
+        importo: differenza,
+        totalePapa,
+        totaleMamma,
+        totaleGenerale
+      };
     } else if (differenza < 0) {
-      return { debitore: 'papa', creditore: 'mamma', importo: Math.abs(differenza), totalePapa, totaleMamma };
+      return {
+        debitore: 'papa',
+        creditore: 'mamma',
+        importo: Math.abs(differenza),
+        totalePapa,
+        totaleMamma,
+        totaleGenerale
+      };
     }
-    return { debitore: null, creditore: null, importo: 0, totalePapa, totaleMamma };
+
+    return {
+      debitore: null,
+      creditore: null,
+      importo: 0,
+      totalePapa,
+      totaleMamma,
+      totaleGenerale
+    };
+  }
+
+  getSpeseFiltrate({ categoria = 'tutte', daData = null, aData = null } = {}) {
+    return this.spese.filter(s => {
+      const matchCat = categoria === 'tutte' || s.categoria === categoria;
+      const matchDa = !daData || s.data >= daData;
+      const matchA = !aData || s.data <= aData;
+      return matchCat && matchDa && matchA;
+    });
   }
 }
