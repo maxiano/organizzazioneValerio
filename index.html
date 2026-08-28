@@ -58,6 +58,12 @@
       <span>Esporta Excel</span>
     </button>
 
+    <!-- ESPORTAZIONE ICAL / GOOGLE CALENDAR -->
+    <button type="button" class="btn btn-export" onclick="exportToICal()">
+      <span class="btn-icon">📅</span>
+      <span>Esporta iCal</span>
+    </button>
+
     <button type="button" class="btn btn-reset" onclick="resetOverrides()">
       <span class="btn-icon">🔄</span>
       <span>Ripristina Standard</span>
@@ -107,6 +113,38 @@
   <div class="grid" id="calendarGrid"></div>
   <div class="list-view" id="calendarList" style="display: none;"></div>
 
+  <!-- SEZIONE MODULO SPESE EXTRA -->
+  <section class="module-section">
+    <h3>💰 Gestione Spese Extra & Contabilità</h3>
+    
+    <div class="spese-summary-card">
+      <div>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Saldo Attuale (Divisione 50/50)</p>
+        <div id="speseSaldoInfo" style="font-size: 1.05rem; margin-top: 4px;">Caricamento saldo...</div>
+      </div>
+      <button class="btn btn-primary" onclick="openSpesaModal()">➕ Aggiungi Spesa</button>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="spese-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--surface-border); text-align: left;">
+            <th style="padding: 8px;">Data</th>
+            <th style="padding: 8px;">Descrizione</th>
+            <th style="padding: 8px;">Categoria</th>
+            <th style="padding: 8px;">Pagato Da</th>
+            <th style="padding: 8px;">Importo</th>
+            <th style="padding: 8px;">Ricevuta</th>
+            <th style="padding: 8px; text-align: center;">Azioni</th>
+          </tr>
+        </thead>
+        <tbody id="speseTableBody">
+          <!-- Generato dinamicamente via JS -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <!-- MODALE PER GESTIONE NOTE ED EVENTI -->
   <div id="noteModal" class="modal-overlay">
     <div class="modal-content">
@@ -125,15 +163,63 @@
       <input type="text" id="noteTextInput" placeholder="Es. Partita ore 15:00..." maxlength="40">
 
       <!-- SPUNTA CAMBIO TURNO UFFICIALE -->
-      <label style="display: flex; align-items: center; gap: 10px; margin-top: 6px; cursor: pointer;">
-        <input type="checkbox" id="checkIsCambio" style="width: 18px; height: 18px; cursor: pointer;">
-        <span style="font-weight: 600; font-size: 0.88rem;">Segna ufficialmente come "Cambio Turno"</span>
+      <label class="modal-checkbox-label">
+        <input type="checkbox" id="checkIsCambio">
+        <span>Segna ufficialmente come "Cambio Turno"</span>
       </label>
 
       <div class="modal-actions">
         <button class="btn-delete" id="btnDeleteNote" onclick="deleteCurrentNote()">Elimina Nota</button>
         <button onclick="closeNoteModal()">Annulla</button>
         <button class="btn-primary" onclick="saveCurrentNote()">Salva</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE AGGIUNTA SPESA -->
+  <div class="modal-overlay" id="spesaModal">
+    <div class="modal-content">
+      <h3>Registra Spesa Straordinaria</h3>
+      
+      <label>Descrizione Spesa
+        <input type="text" id="spesaDesc" placeholder="Es. Gita scolastica, Visita dentistica...">
+      </label>
+
+      <div style="display: flex; gap: 10px;">
+        <label style="flex: 1;">Importo (€)
+          <input type="number" step="0.01" id="spesaImporto" placeholder="0.00">
+        </label>
+
+        <label style="flex: 1;">Pagato Da
+          <select id="spesaPagatoDa">
+            <option value="papa">Papà</option>
+            <option value="mamma">Mamma</option>
+          </select>
+        </label>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <label style="flex: 1;">Data
+          <input type="date" id="spesaData">
+        </label>
+
+        <label style="flex: 1;">Categoria
+          <select id="spesaCategoria">
+            <option value="scuola">📚 Scuola</option>
+            <option value="salute">🏥 Salute / Visite</option>
+            <option value="sport">⚽ Sport / Attività</option>
+            <option value="altro">📦 Altro</option>
+          </select>
+        </label>
+      </div>
+
+      <label>Allegato Ricevuta / Scontrino (Opzionale)
+        <input type="file" id="spesaRicevutaInput" accept="image/*">
+      </label>
+
+      <div class="modal-actions">
+        <button onclick="closeSpesaModal()">Annulla</button>
+        <button class="btn-primary" onclick="saveSpesa()">Salva Spesa</button>
       </div>
     </div>
   </div>
@@ -150,6 +236,6 @@
   </script>
 
   <!-- Logica JavaScript Esterna (Modulo ES6) -->
- <script type="module" src="js/app.js"></script> 
+  <script type="module" src="js/app.js"></script> 
 </body>
 </html>
