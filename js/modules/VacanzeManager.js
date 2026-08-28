@@ -1,5 +1,3 @@
-// modules/VacanzeManager.js
-
 export class VacanzeManager {
   constructor() {
     this.vacanze = [];
@@ -36,16 +34,23 @@ export class VacanzeManager {
   // -------------------------------------------------------------
   
   /**
-    * Cerca se per una determinata data esiste un blocco vacanza attivo
-    */
+   * Cerca se per una determinata data esiste un blocco vacanza attivo
+   */
   getVacanzaForDate(date) {
     if (!Array.isArray(this.vacanze) || this.vacanze.length === 0) return null;
 
-    // Formatta la data in formato YYYY-MM-DD gestendo il fuso orario locale
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
+    let dateStr = '';
+    if (typeof date === 'string') {
+      dateStr = date.split('T')[0];
+    } else if (date instanceof Date) {
+      // Formatta la data YYYY-MM-DD usando la data locale pulita (senza interferenza orario)
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      dateStr = `${year}-${month}-${day}`;
+    }
+
+    if (!dateStr) return null;
 
     return this.vacanze.find(v => {
       if (!v.dataInizio || !v.dataFine) return false;
@@ -54,13 +59,17 @@ export class VacanzeManager {
   }
 
   addVacanzeBlock(titolo, dataInizio, dataFine, assegnatoA) {
+    const valGenitore = (assegnatoA || 'papa').toLowerCase().trim();
+
     const newBlock = {
       id: Date.now().toString(),
       titolo,
       dataInizio,
       dataFine,
-      parent: assegnatoA,    // Impostato come 'parent' per allineamento a Firestore
-      genitore: assegnatoA   // Compatibilità fallback
+      // Salva tutte e 3 le varianti di chiave per garantire compatibilità ovunque nel codice
+      assegnatoA: valGenitore,
+      parent: valGenitore,
+      genitore: valGenitore
     };
     
     if (!Array.isArray(this.vacanze)) {
