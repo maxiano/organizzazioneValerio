@@ -1,49 +1,87 @@
 export class SaluteManager {
   constructor() {
+    this.resetSchede();
+  }
+
+  resetSchede() {
     this.schede = {
       pediatra: { nome: '', telefono: '', orari: '' },
-      contattiUtili: [], // [{ id, nome, ruolo, telefono }]
+      contattiUtili: [],
       infoGenerali: { gruppoSanguigno: '', allergie: '', terapie: '' },
-      farmaci: [],        // [{ id, nome, orario, note, somministrato: { 'YYYY-MM-DD': true/false } }]
-      visite: []         // [{ id, data, descrizione, note }]
+      farmaci: [],
+      visite: []
     };
+  }
+
+  _generateId() {
+    return `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   }
 
   setSchede(data) {
+    if (!data || typeof data !== 'object') {
+      this.resetSchede();
+      return;
+    }
+
     this.schede = {
-      pediatra: data.pediatra || { nome: '', telefono: '', orari: '' },
-      contattiUtili: data.contattiUtili || [],
-      infoGenerali: data.infoGenerali || { gruppoSanguigno: '', allergie: '', terapie: '' },
-      farmaci: data.farmaci || [],
-      visite: data.visite || []
+      pediatra: {
+        nome: data.pediatra?.nome || '',
+        telefono: data.pediatra?.telefono || '',
+        orari: data.pediatra?.orari || ''
+      },
+      contattiUtili: Array.isArray(data.contattiUtili) ? data.contattiUtili : [],
+      infoGenerali: {
+        gruppoSanguigno: data.infoGenerali?.gruppoSanguigno || '',
+        allergie: data.infoGenerali?.allergie || '',
+        terapie: data.infoGenerali?.terapie || ''
+      },
+      farmaci: Array.isArray(data.farmaci) ? data.farmaci : [],
+      visite: Array.isArray(data.visite) ? data.visite : []
     };
   }
 
-  // GESTIONE PEDIATRA E INFO
-  updatePediatra(nome, telefono, orari) {
-    this.schede.pediatra = { nome, telefono, orari };
+  getSchede() {
+    return this.schede;
   }
 
-  updateInfoGenerali(gruppoSanguigno, allergie, terapie) {
-    this.schede.infoGenerali = { gruppoSanguigno, allergie, terapie };
-  }
-
-  // GESTIONE FARMACI / TERAPIE
-  addFarmaco(nome, orario, note) {
-    const nuovo = {
-      id: Date.now().toString(),
-      nome,
-      orario,
-      note,
-      somministrato: {} // Mappa dateKey -> boolean (es. { "2026-08-28": true })
+  updatePediatra(nome = '', telefono = '', orari = '') {
+    this.schede.pediatra = {
+      nome: nome.trim(),
+      telefono: telefono.trim(),
+      orari: orari.trim()
     };
-    this.schede.farmaci.push(nuovo);
+  }
+
+  updateInfoGenerali(allergie = '', gruppoSanguigno = '', terapie = '') {
+    this.schede.infoGenerali = {
+      allergie: allergie.trim(),
+      gruppoSanguigno: gruppoSanguigno.trim(),
+      terapie: terapie.trim()
+    };
+  }
+
+  addFarmaco(nome = '', orario = '', note = '') {
+    const cleanNome = nome.trim();
+    if (!cleanNome) return null;
+
+    const nuovoFarmaco = {
+      id: this._generateId(),
+      nome: cleanNome,
+      orario: orario.trim(),
+      note: note.trim(),
+      somministrato: {}
+    };
+
+    this.schede.farmaci.push(nuovoFarmaco);
+    return nuovoFarmaco;
   }
 
   toggleSomministrazione(farmacoId, dateKey) {
     const farmaco = this.schede.farmaci.find(f => f.id === farmacoId);
     if (farmaco) {
-      if (!farmaco.somministrato) farmaco.somministrato = {};
+      if (!farmaco.somministrato || typeof farmaco.somministrato !== 'object') {
+        farmaco.somministrato = {};
+      }
       farmaco.somministrato[dateKey] = !farmaco.somministrato[dateKey];
     }
   }
@@ -52,31 +90,53 @@ export class SaluteManager {
     this.schede.farmaci = this.schede.farmaci.filter(f => f.id !== id);
   }
 
-  // GESTIONE CONTATTI UTILI
-  addContatto(nome, ruolo, telefono) {
-    this.schede.contattiUtili.push({
-      id: Date.now().toString(),
-      nome,
-      ruolo,
-      telefono
-    });
+  addContatto(nome = '', ruolo = '', telefono = '') {
+    const cleanNome = nome.trim();
+    if (!cleanNome) return null;
+
+    const nuovoContatto = {
+      id: this._generateId(),
+      nome: cleanNome,
+      ruolo: ruolo.trim(),
+      telefono: telefono.trim()
+    };
+
+    this.schede.contattiUtili.push(nuovoContatto);
+    return nuovoContatto;
   }
 
   deleteContatto(id) {
     this.schede.contattiUtili = this.schede.contattiUtili.filter(c => c.id !== id);
   }
 
-  // GESTIONE VISITE
-  addVisita(data, descrizione, note = '') {
-    this.schede.visite.push({
-      id: Date.now().toString(),
+  addVisita(data = '', descrizione = '', note = '') {
+    const cleanDesc = descrizione.trim();
+    if (!cleanDesc || !data) return null;
+
+    const nuovaVisita = {
+      id: this._generateId(),
       data,
-      descrizione,
-      note
-    });
+      descrizione: cleanDesc,
+      note: note.trim()
+    };
+
+    this.schede.visite.push(nuovaVisita);
+    this.schede.visite.sort((a, b) => new Date(a.data) - new Date(b.data));
+    return nuovaVisita;
   }
 
   deleteVisita(id) {
     this.schede.visite = this.schede.visite.filter(v => v.id !== id);
+  }
+
+  getVisiteProssime(fromDateString) {
+    const refDate = fromDateString ? new Date(fromDateString) : new Date();
+    refDate.setHours(0, 0, 0, 0);
+
+    return this.schede.visite.filter(v => {
+      const vDate = new Date(v.data);
+      vDate.setHours(0, 0, 0, 0);
+      return vDate >= refDate;
+    });
   }
 }
