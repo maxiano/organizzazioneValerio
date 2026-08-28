@@ -9,9 +9,11 @@
   --bg-gradient: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
   --surface-bg: #ffffff;
   --surface-border: rgba(226, 232, 240, 0.8);
+  --input-bg: #f8fafc;
+  --input-border: #cbd5e1;
   --text-main: #0f172a;
   --text-muted: #64748b;
-  
+
   /* Accent Colors */
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
@@ -41,6 +43,7 @@
   --modal-backdrop: rgba(15, 23, 42, 0.55);
   --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
   --glow-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.25);
+  --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.25);
   --radius-lg: 18px;
   --radius-md: 12px;
   --radius-sm: 8px;
@@ -51,6 +54,8 @@
   --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   --surface-bg: #1e293b;
   --surface-border: rgba(255, 255, 255, 0.08);
+  --input-bg: #0f172a;
+  --input-border: #334155;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
 
@@ -76,6 +81,7 @@
   --logistica-bg: rgba(124, 58, 237, 0.25);
 
   --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  --focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.3);
 }
 
 /* ==========================================================================
@@ -281,20 +287,26 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   font-size: 0.8rem;
   color: var(--text-muted);
   font-weight: 600;
 }
 
 .filter-group input[type="date"] {
-  background: var(--bg-gradient);
-  border: 1px solid var(--surface-border);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   color: var(--text-main);
-  padding: 8px 12px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
   outline: none;
+  transition: all 0.2s ease;
+}
+
+.filter-group input[type="date"]:focus {
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
 }
 
 .stats-results {
@@ -531,40 +543,177 @@ body {
 }
 
 /* ==========================================================================
-   SEZIONE COMPONENTI MODULARI (Spese, Salute, Logistica)
+   SEZIONE COMPONENTI MODULARI & FORM SOTTO IL CALENDARIO (REDISIGNED)
    ========================================================================== */
 .module-section {
   background: var(--surface-bg);
-  padding: 18px;
+  padding: 24px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--surface-border);
   box-shadow: var(--card-shadow);
   margin-top: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
+.module-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--primary);
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
+}
+
+/* Tematizzazione bordi laterali per categoria */
+.module-section.spese-module::before { background: var(--spesa-color); }
+.module-section.salute-module::before { background: var(--salute-color); }
+.module-section.logistica-module::before { background: var(--logistica-color); }
 
 .module-section h3 {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 800;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
 }
 
+/* Layout Form Generico Moduli */
+.module-section form,
+.module-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--bg-gradient);
+  padding: 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--surface-border);
+}
+
+.form-row,
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+/* Form Group & Labels */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label,
+.module-section label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Input, Select & Textarea nei Form sotto il Calendario */
+.module-section input[type="text"],
+.module-section input[type="number"],
+.module-section input[type="date"],
+.module-section select,
+.module-section textarea,
+.module-form input[type="text"],
+.module-form input[type="number"],
+.module-form input[type="date"],
+.module-form select,
+.module-form textarea {
+  width: 100%;
+  background: var(--surface-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text-main);
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.module-section input:hover,
+.module-section select:hover,
+.module-section textarea:hover {
+  border-color: var(--text-muted);
+}
+
+.module-section input:focus,
+.module-section select:focus,
+.module-section textarea:focus {
+  border-color: var(--primary);
+  background: var(--surface-bg);
+  box-shadow: var(--focus-ring);
+  transform: translateY(-1px);
+}
+
+/* Resumè Card Spese */
 .spese-summary-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--bg-gradient);
-  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--spesa-bg) 0%, var(--surface-bg) 100%);
+  padding: 16px 20px;
   border-radius: var(--radius-md);
-  margin-bottom: 14px;
-  border: 1px solid var(--surface-border);
+  margin-bottom: 18px;
+  border: 1px solid rgba(5, 150, 105, 0.2);
+  box-shadow: var(--card-shadow);
+}
+
+.spese-summary-card span {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-main);
 }
 
 .spese-summary-card strong {
   color: var(--spesa-color);
-  font-size: 1.1rem;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+/* Bottoni nei Moduli */
+.module-section .btn-submit,
+.module-form button[type="submit"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: #ffffff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--glow-shadow);
+  transition: all 0.2s ease;
+  align-self: flex-end;
+  margin-top: 4px;
+}
+
+.module-section .btn-submit:hover,
+.module-form button[type="submit"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+}
+
+.module-section .btn-submit:active,
+.module-form button[type="submit"]:active {
+  transform: translateY(0);
 }
 
 /* ==========================================================================
@@ -577,7 +726,8 @@ body {
   right: 0;
   bottom: 0;
   background: var(--modal-backdrop);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -585,7 +735,7 @@ body {
   z-index: 1000;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25 ease;
 }
 
 .modal-overlay.active {
@@ -595,41 +745,61 @@ body {
 
 .modal-content {
   background: var(--surface-bg);
-  padding: 24px;
+  padding: 26px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--surface-border);
   width: 100%;
-  max-width: 440px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  max-width: 450px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+  transform: scale(0.95);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-overlay.active .modal-content {
+  transform: scale(1);
 }
 
 .modal-content h3 {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
 }
 
 .modal-content label {
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-muted);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .modal-content input[type="text"], 
 .modal-content input[type="number"], 
-.modal-content select {
-  background: var(--bg-gradient);
-  border: 1px solid var(--surface-border);
+.modal-content select,
+.modal-content textarea {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   color: var(--text-main);
-  padding: 10px;
+  padding: 11px 14px;
   border-radius: var(--radius-sm);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   outline: none;
+  transition: all 0.2s ease;
+}
+
+.modal-content input:focus,
+.modal-content select:focus,
+.modal-content textarea:focus {
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
+  background: var(--surface-bg);
 }
 
 /* Stili specifici per la spunta del cambio turno */
@@ -643,38 +813,59 @@ body {
   color: var(--text-main);
   font-size: 0.88rem;
   font-weight: 600;
+  text-transform: none !important;
 }
 
 .modal-checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   accent-color: var(--primary);
   cursor: pointer;
+  border-radius: 4px;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--surface-border);
 }
 
 .modal-actions button {
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  border: none;
-  font-weight: 600;
-  font-size: 0.85rem;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--surface-border);
+  font-weight: 700;
+  font-size: 0.88rem;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-actions button:hover {
+  transform: translateY(-1px);
 }
 
 .btn-primary {
   background: var(--primary);
   color: #ffffff;
+  border: none !important;
+  box-shadow: var(--glow-shadow);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
 }
 
 .btn-delete {
   background: #ef4444;
   color: #ffffff;
+  border: none !important;
   margin-right: auto;
+}
+
+.btn-delete:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
 }
