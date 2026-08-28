@@ -34,9 +34,12 @@ export class ExportManager {
       }
 
       if (notes && notes[dateKey]) {
-        const cat = notes[dateKey].category ? notes[dateKey].category.toUpperCase() : 'NOTA';
-        const txt = notes[dateKey].text || '';
-        notaText = `[${cat}] ${txt}`;
+        const item = Array.isArray(notes[dateKey]) ? notes[dateKey][0] : notes[dateKey];
+        if (item) {
+          const cat = item.category ? item.category.toUpperCase() : 'NOTA';
+          const txt = item.text || '';
+          notaText = `[${cat}] ${txt}`;
+        }
       }
 
       data.push([dateStr, daysOfWeek[date.getDay()], genitore, cambio, notaText]);
@@ -60,6 +63,9 @@ export class ExportManager {
 
     const formatDate = (y, m, d) => 
       `${y}${String(m + 1).padStart(2, '0')}${String(d).padStart(2, '0')}`;
+
+    // DTSTAMP conforme a ISO UTC
+    const nowStamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 
     const escapeICal = (str) => 
       str ? str.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n") : "";
@@ -90,15 +96,19 @@ export class ExportManager {
       let description = `Turno ordinario: ${parentLabel}`;
 
       if (notes && notes[dateKey]) {
-        const cat = notes[dateKey].category ? notes[dateKey].category.toUpperCase() : 'NOTA';
-        const txt = notes[dateKey].text || '';
-        description += `\\n[${cat}] ${txt}`;
-        summary += ` - ${txt}`;
+        const item = Array.isArray(notes[dateKey]) ? notes[dateKey][0] : notes[dateKey];
+        if (item) {
+          const cat = item.category ? item.category.toUpperCase() : 'NOTA';
+          const txt = item.text || '';
+          // Usare \n normale: ci penserà escapeICal a convertirlo in \n per iCal
+          description += `\n[${cat}] ${txt}`;
+          summary += ` - ${txt}`;
+        }
       }
 
       icsLines.push("BEGIN:VEVENT");
-      icsLines.push(`UID:valerio-${dtStart}-${Math.random().toString(36).substr(2, 5)}@turni`);
-      icsLines.push(`DTSTAMP:${dtStart}T000000Z`);
+      icsLines.push(`UID:valerio-${dtStart}-${Math.random().toString(36).substring(2, 7)}@turni`);
+      icsLines.push(`DTSTAMP:${nowStamp}`);
       icsLines.push(`DTSTART;VALUE=DATE:${dtStart}`);
       icsLines.push(`DTEND;VALUE=DATE:${dtEnd}`);
       icsLines.push(`SUMMARY:${escapeICal(summary)}`);
