@@ -14,6 +14,7 @@ import { VacanzeManager } from './modules/VacanzeManager.js';
 import { SaluteManager } from './modules/SaluteManager.js';
 import { ExportManager } from './modules/ExportManager.js';
 
+
 // Inizializzazione dei Manager
 const turniMgr = new TurniManager();
 const speseMgr = new SpeseManager();
