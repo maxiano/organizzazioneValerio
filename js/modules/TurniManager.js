@@ -1,7 +1,14 @@
 export class TurniManager {
   constructor(startDateA = null) {
-    // SE NON VIENE PASSATA UNA DATA, usiamo una data base fissa (es. 1 Gennaio 2024)
-    const baseDate = startDateA ? new Date(startDateA) : new Date('2024-01-01T00:00:00');
+    let baseDate;
+    if (startDateA) {
+      baseDate = new Date(startDateA);
+    }
+    
+    if (!baseDate || isNaN(baseDate.getTime())) {
+      baseDate = new Date('2024-01-01T00:00:00');
+    }
+
     baseDate.setHours(0, 0, 0, 0);
     this.startDateA = baseDate;
 
@@ -9,32 +16,38 @@ export class TurniManager {
     this.manualCambi = {};
   }
 
-  /**
-   * Popola il manager con i dati scaricati da Firebase
-   */
   setData(overrides = {}, manualCambi = {}) {
-    this.overrides = overrides || {};
-    this.manualCambi = manualCambi || {};
+    this.overrides = overrides && typeof overrides === 'object' ? overrides : {};
+    this.manualCambi = manualCambi && typeof manualCambi === 'object' ? manualCambi : {};
   }
 
   formatDateKey(date) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    const d = date instanceof Date && !isNaN(date) ? date : new Date(date);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  parseDateKey(dateKey) {
+    const parts = String(dateKey).split('-');
+    if (parts.length !== 3) return new Date();
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    return new Date(y, m, d, 0, 0, 0, 0);
   }
 
   getStandardParent(date) {
-    const d = new Date(date);
+    const d = date instanceof Date ? new Date(date.getTime()) : this.parseDateKey(date);
     d.setHours(0, 0, 0, 0);
 
     const msPerDay = 86400000;
-    const daysDiff = Math.floor((d - this.startDateA) / msPerDay);
-
+    const daysDiff = Math.round((d - this.startDateA) / msPerDay);
     const cycleDay = ((daysDiff % 14) + 14) % 14; 
 
-    // Schema rotazione (Giorni Papà: 0, 3, 5, 6, 8, 10)
-    if (cycleDay === 0 || cycleDay === 3 || cycleDay === 5 || cycleDay === 6 || cycleDay === 8 || cycleDay === 10) {
+    const giorniPapa = [0, 3, 5, 6, 8, 10];
+    if (giorniPapa.includes(cycleDay)) {
       return 'papa';
     }
 
@@ -42,48 +55,51 @@ export class TurniManager {
   }
 
   getParentForDate(date) {
-    const dateKey = this.formatDateKey(date);
+    const dateKey = typeof date === 'string' ? date : this.formatDateKey(date);
     const standardParent = this.getStandardParent(date);
 
-    // Controlla se la data è presente in overrides
     if (Object.prototype.hasOwnProperty.call(this.overrides, dateKey)) {
       const p = this.overrides[dateKey];
       const actualParent = p === 'none' ? null : p;
-
-      // Mostra "CAMBIO" SOLO SE il flag manualCambi per questo giorno è impostato su true
       const isOverride = Boolean(this.manualCambi && this.manualCambi[dateKey] === true);
 
       return { parent: actualParent, isOverride: isOverride };
     }
 
-    // Rotazione standard senza modifiche
     return { parent: standardParent, isOverride: false };
   }
 
   toggleDay(dateKey) {
-    const parts = dateKey.split('-');
-    const date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-    
-    const currentStatus = this.getParentForDate(date);
+    const currentStatus = this.getParentForDate(dateKey);
+    const standardParent = this.getStandardParent(dateKey);
 
-    // Ciclo di selezione manuale: Papà -> Mamma -> Nessuno -> Papà
+    let nextParent;
+
     if (currentStatus.parent === 'papa') {
-      this.overrides[dateKey] = 'mamma';
+      nextParent = 'mamma';
     } else if (currentStatus.parent === 'mamma') {
-      this.overrides[dateKey] = 'none';
+      nextParent = 'none';
     } else {
-      this.overrides[dateKey] = 'papa';
+      nextParent = 'papa';
     }
 
-    // Impostiamo il cambio manuale
-    this.manualCambi[dateKey] = true;
+    if (nextParent === standardParent) {
+      delete this.overrides[dateKey];
+      delete this.manualCambi[dateKey];
+    } else {
+      this.overrides[dateKey] = nextParent;
+      this.manualCambi[dateKey] = true;
+    }
 
     return this.toJSON();
   }
 
-  /**
-   * Helper per salvare facilmente l'oggetto completo su Firebase
-   */
+  resetDayToStandard(dateKey) {
+    if (this.overrides[dateKey]) delete this.overrides[dateKey];
+    if (this.manualCambi[dateKey]) delete this.manualCambi[dateKey];
+    return this.toJSON();
+  }
+
   toJSON() {
     return {
       overrides: this.overrides,
