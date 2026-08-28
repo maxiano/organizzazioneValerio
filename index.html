@@ -24,47 +24,48 @@
 </head>
 <body>
 
-  <div class="top-bar">
+  <!-- BARRA SUPERIORE -->
+  <header class="top-bar">
     <h1>Turni Valerio</h1>
-    <button id="themeToggleBtn" class="btn-theme" onclick="toggleDarkMode()">🌙 Scuro</button>
-  </div>
+    <button id="themeToggleBtn" class="btn-theme">🌙 Scuro</button>
+  </header>
 
   <div class="subhead">Tocca un giorno per il turno, o usa 📝 per note ed eventi</div>
 
+  <!-- LEGENDA -->
   <div class="legend">
-    <div class="legend-item"><span class="dot papa"></span> Con Te</div>
+    <div class="legend-item"><span class="dot papa"></span> Con Te (Papà)</div>
     <div class="legend-item"><span class="dot mamma"></span> Con Mamma</div>
   </div>
 
+  <!-- AZIONI E PULSANTI PRINCIPALI -->
   <div class="action-buttons">
-    <!-- PULSANTE INSTALLAZIONE PWA (visibile solo se supportato dal browser) -->
-    <button id="btnInstall" onclick="window.installPWA()" style="display: none;">
+    <button id="btnInstall" style="display: none;">
       📲 Installa App
     </button>
 
     <label for="csvInput" class="btn btn-import">
       <span class="btn-icon">📄</span>
       <span>Carica File CSV</span>
-      <input type="file" id="csvInput" accept=".csv" onchange="importFromCSV(event)">
+      <input type="file" id="csvInput" accept=".csv">
     </label>
 
-    <button type="button" class="btn btn-print" onclick="window.print()">
+    <button type="button" id="btnPrint" class="btn btn-print">
       <span class="btn-icon">🖨️</span>
       <span>Stampa / PDF</span>
     </button>
 
-    <button type="button" class="btn btn-export" onclick="exportToExcel()">
+    <button type="button" id="btnExportExcel" class="btn btn-export">
       <span class="btn-icon">📊</span>
       <span>Esporta Excel</span>
     </button>
 
-    <!-- ESPORTAZIONE ICAL / GOOGLE CALENDAR -->
-    <button type="button" class="btn btn-export" onclick="exportToICal()">
+    <button type="button" id="btnExportICal" class="btn btn-export">
       <span class="btn-icon">📅</span>
       <span>Esporta iCal</span>
     </button>
 
-    <button type="button" class="btn btn-reset" onclick="resetOverrides()">
+    <button type="button" id="btnResetOverrides" class="btn btn-reset">
       <span class="btn-icon">🔄</span>
       <span>Ripristina Standard</span>
     </button>
@@ -72,16 +73,16 @@
 
   <!-- SELETTORE VISTA (GRIGLIA / LISTA) -->
   <div class="view-toggle">
-    <button id="btnViewGrid" class="btn-toggle active" onclick="switchView('grid')">📅 Griglia</button>
-    <button id="btnViewList" class="btn-toggle" onclick="switchView('list')">📋 Lista Agenda</button>
+    <button id="btnViewGrid" class="btn-toggle active">📅 Griglia</button>
+    <button id="btnViewList" class="btn-toggle">📋 Lista Agenda</button>
   </div>
 
   <!-- FILTRO INTERVALLO DATE E CONTEGGIO TOTALI -->
   <div class="stats-card">
     <h3>📊 Calcolo Giorni per Intervallo</h3>
     <div class="filter-group">
-      <label>Da: <input type="date" id="filterStartDate" onchange="calculateStats()"></label>
-      <label>A: <input type="date" id="filterEndDate" onchange="calculateStats()"></label>
+      <label>Da: <input type="date" id="filterStartDate"></label>
+      <label>A: <input type="date" id="filterEndDate"></label>
     </div>
     <div class="stats-results">
       <div class="stat-box papa-box">
@@ -101,19 +102,21 @@
 
   <!-- CONTROLLI MESE / ANNO RAPIDI -->
   <div class="controls">
-    <button onclick="changeMonth(-1)">&lt; Prec</button>
+    <button id="btnPrevMonth">&lt; Prec</button>
     <div class="month-selectors">
-      <select id="monthSelect" onchange="onDateSelectChange()"></select>
-      <select id="yearSelect" onchange="onDateSelectChange()"></select>
+      <select id="monthSelect"></select>
+      <select id="yearSelect"></select>
     </div>
-    <button onclick="changeMonth(1)">Succ &gt;</button>
+    <button id="btnNextMonth">Succ &gt;</button>
   </div>
 
   <!-- CONTENITORI PER LE DUE VISTE -->
-  <div class="grid" id="calendarGrid"></div>
-  <div class="list-view" id="calendarList" style="display: none;"></div>
+  <main>
+    <div class="grid" id="calendarGrid"></div>
+    <div class="list-view" id="calendarList" style="display: none;"></div>
+  </main>
 
-  <!-- SEZIONE MODULO SPESE EXTRA -->
+  <!-- SEZIONE SPESE EXTRA & CONTABILITÀ -->
   <section class="module-section">
     <h3>💰 Gestione Spese Extra & Contabilità</h3>
     
@@ -122,7 +125,7 @@
         <p style="font-size: 0.85rem; color: var(--text-muted);">Saldo Attuale (Divisione 50/50)</p>
         <div id="speseSaldoInfo" style="font-size: 1.05rem; margin-top: 4px;">Caricamento saldo...</div>
       </div>
-      <button class="btn btn-primary" onclick="openSpesaModal()">➕ Aggiungi Spesa</button>
+      <button id="btnOpenSpesaModal" class="btn btn-primary">➕ Aggiungi Spesa</button>
     </div>
 
     <div style="overflow-x: auto;">
@@ -149,14 +152,14 @@
   <section class="module-section" style="margin-top: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
       <h3>🏖️ Pianificatore Vacanze Estive & Festività</h3>
-      <button class="btn btn-primary" onclick="openVacanzeModal()">➕ Aggiungi Blocco Vacanza</button>
+      <button id="btnOpenVacanzeModal" class="btn btn-primary">➕ Aggiungi Blocco Vacanza</button>
     </div>
     <div id="vacanzeListContainer" style="display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
       <!-- Inserito dinamicamente da JS -->
     </div>
   </section>
 
-  <!-- SEZIONE SALUTE E TERAPIE (AGGIORNATA) -->
+  <!-- SEZIONE SALUTE E TERAPIE -->
   <section class="module-section" style="margin-top: 20px;">
     <h2>🏥 Modulo Salute & Terapie</h2>
 
@@ -167,7 +170,7 @@
         <input type="text" id="farmacoNome" placeholder="Nome farmaco" style="flex:2; min-width: 120px;">
         <input type="time" id="farmacoOrario" style="flex:1; min-width: 80px;">
         <input type="text" id="farmacoNote" placeholder="Note (es. a stomaco pieno)" style="flex:2; min-width: 120px;">
-        <button class="btn btn-primary" onclick="addFarmaco()">Aggiungi</button>
+        <button id="btnAddFarmaco" class="btn btn-primary">Aggiungi</button>
       </div>
       <div id="saluteFarmaciList"></div>
     </div>
@@ -179,7 +182,7 @@
         <input type="text" id="contattoNome" placeholder="Nome (es. Scuolabus, Baby Sitter)" style="flex:2; min-width: 130px;">
         <input type="text" id="contattoRuolo" placeholder="Ruolo/Note" style="flex:1; min-width: 100px;">
         <input type="tel" id="contattoTel" placeholder="Telefono" style="flex:1; min-width: 100px;">
-        <button class="btn btn-primary" onclick="addContattoUtile()">+ Aggiungi</button>
+        <button id="btnAddContatto" class="btn btn-primary">+ Aggiungi</button>
       </div>
       <div id="saluteContattiList"></div>
     </div>
@@ -205,7 +208,7 @@
         <label style="font-size:0.8rem;">Allergie / Intolleranze / Note Mediche:</label>
         <textarea id="saluteAllergie" rows="2" class="form-control" style="width: 100%; box-sizing: border-box;"></textarea>
       </div>
-      <button class="btn btn-primary" style="margin-top: 10px;" onclick="saveSaluteInfo()">💾 Salva Info Mediche</button>
+      <button id="btnSaveSaluteInfo" class="btn btn-primary" style="margin-top: 10px;">💾 Salva Info Mediche</button>
     </div>
 
     <!-- 4. Visite Mediche -->
@@ -214,13 +217,15 @@
       <div style="display:flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
         <input type="date" id="visitaData">
         <input type="text" id="visitaDesc" placeholder="Descrizione visita (es. Dentista ore 16:00)" style="flex:1; min-width: 150px;">
-        <button class="btn btn-primary" onclick="addVisitaMedica()">Aggiungi</button>
+        <button id="btnAddVisita" class="btn btn-primary">Aggiungi</button>
       </div>
       <ul id="saluteVisiteList" style="list-style:none; padding:0; margin:0; max-height:200px; overflow-y:auto;"></ul>
     </div>
   </section>
 
-  <!-- MODALE PER GESTIONE NOTE ED EVENTI -->
+  <!-- MODALI DI GESTIONE -->
+
+  <!-- Modale Note / Eventi -->
   <div id="noteModal" class="modal-overlay">
     <div class="modal-content">
       <h3 id="modalDateTitle">Aggiungi Evento / Nota</h3>
@@ -237,21 +242,20 @@
       <label for="noteTextInput">Descrizione / Nota:</label>
       <input type="text" id="noteTextInput" placeholder="Es. Partita ore 15:00..." maxlength="40">
 
-      <!-- SPUNTA CAMBIO TURNO UFFICIALE -->
       <label class="modal-checkbox-label">
         <input type="checkbox" id="checkIsCambio">
         <span>Segna ufficialmente come "Cambio Turno"</span>
       </label>
 
       <div class="modal-actions">
-        <button class="btn-delete" id="btnDeleteNote" onclick="deleteCurrentNote()">Elimina Nota</button>
-        <button onclick="closeNoteModal()">Annulla</button>
-        <button class="btn-primary" onclick="saveCurrentNote()">Salva</button>
+        <button id="btnDeleteNote" class="btn-delete">Elimina Nota</button>
+        <button id="btnCloseNoteModal">Annulla</button>
+        <button id="btnSaveNote" class="btn-primary">Salva</button>
       </div>
     </div>
   </div>
 
-  <!-- MODALE AGGIUNTA SPESA -->
+  <!-- Modale Spese -->
   <div class="modal-overlay" id="spesaModal">
     <div class="modal-content">
       <h3>Registra Spesa Straordinaria</h3>
@@ -293,13 +297,13 @@
       </label>
 
       <div class="modal-actions">
-        <button onclick="closeSpesaModal()">Annulla</button>
-        <button class="btn-primary" onclick="saveSpesa()">Salva Spesa</button>
+        <button id="btnCloseSpesaModal">Annulla</button>
+        <button id="btnSaveSpesa" class="btn-primary">Salva Spesa</button>
       </div>
     </div>
   </div>
 
-  <!-- MODALE LOGISTICA & CHECKLIST PASSAGGI -->
+  <!-- Modale Logistica -->
   <div class="modal-overlay" id="logisticaModal">
     <div class="modal-content">
       <h3 id="logisticaModalTitle">🚗 Dettagli Passaggio</h3>
@@ -316,13 +320,13 @@
       </div>
 
       <div class="modal-actions" style="margin-top: 20px;">
-        <button onclick="closeLogisticaModal()">Annulla</button>
-        <button class="btn-primary" onclick="saveLogistica()">Salva Passaggio</button>
+        <button id="btnCloseLogisticaModal">Annulla</button>
+        <button id="btnSaveLogistica" class="btn-primary">Salva Passaggio</button>
       </div>
     </div>
   </div>
 
-  <!-- MODALE VACANZE -->
+  <!-- Modale Vacanze -->
   <div class="modal-overlay" id="vacanzeModal">
     <div class="modal-content">
       <h3>🏖️ Aggiungi Blocco Vacanza</h3>
@@ -336,8 +340,8 @@
         </select>
       </label>
       <div class="modal-actions">
-        <button onclick="closeVacanzeModal()">Annulla</button>
-        <button class="btn-primary" onclick="saveVacanzaBlock()">Salva Blocco</button>
+        <button id="btnCloseVacanzeModal">Annulla</button>
+        <button id="btnSaveVacanze" class="btn-primary">Salva Blocco</button>
       </div>
     </div>
   </div>
@@ -347,8 +351,8 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-          .then((reg) => console.log('Service Worker registrato:', reg.scope))
-          .catch((err) => console.error('Errore Service Worker:', err));
+          .then((reg) => console.log('Service Worker registrato con successo:', reg.scope))
+          .catch((err) => console.error('Errore registrazione Service Worker:', err));
       });
     }
   </script>
