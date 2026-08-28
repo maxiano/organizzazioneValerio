@@ -5,6 +5,7 @@ import { SpeseManager } from "./modules/SpeseManager.js";
 import { LogisticaManager } from "./modules/LogisticaManager.js";
 import { SaluteManager } from "./modules/SaluteManager.js";
 import { VacanzeManager } from "./modules/VacanzeManager.js";
+import { ScuolaManager } from "./modules/ScuolaManager.js";
 import { ExportManager } from "./modules/ExportManager.js";
 
 // Inizializzazione Istanze Moduli
@@ -13,6 +14,7 @@ const speseMgr = new SpeseManager();
 const logisticaMgr = new LogisticaManager();
 const saluteMgr = new SaluteManager();
 const vacanzeMgr = new VacanzeManager();
+const scuolaMgr = new ScuolaManager();
 
 let notes = {};
 let activeDateKeyForNote = null;
@@ -142,13 +144,14 @@ window.changeMonth = function(delta) {
 };
 
 window.resetOverrides = async function() {
-  if (confirm("Vuoi cancellare tutti i dati salvati (cambi, spese, vacanze, note, salute)?")) {
+  if (confirm("Vuoi cancellare tutti i dati salvati (cambi, spese, vacanze, note, salute, scuola)?")) {
     turniMgr.setData({}, {});
     notes = {};
     speseMgr.setSpese([]);
     logisticaMgr.setPassaggi({});
     saluteMgr.setSchede({});
     vacanzeMgr.setVacanze([]);
+    scuolaMgr.fromJSON({});
     await saveDataToFirestore();
     render();
     alert("Tutti i dati sono stati ripristinati!");
@@ -167,6 +170,7 @@ onSnapshot(docRef, (docSnap) => {
     logisticaMgr.setPassaggi(data.passaggi || {});
     saluteMgr.setSchede(data.salute || {});
     vacanzeMgr.setVacanze(data.vacanze || []);
+    scuolaMgr.fromJSON(data.scuola || {});
   } else {
     turniMgr.setData({}, {});
     notes = {};
@@ -174,6 +178,7 @@ onSnapshot(docRef, (docSnap) => {
     logisticaMgr.setPassaggi({});
     saluteMgr.setSchede({});
     vacanzeMgr.setVacanze([]);
+    scuolaMgr.fromJSON({});
   }
   render();
 });
@@ -187,7 +192,8 @@ async function saveDataToFirestore() {
       spese: speseMgr.spese,
       passaggi: logisticaMgr.passaggi,
       salute: saluteMgr.schede,
-      vacanze: vacanzeMgr.vacanze
+      vacanze: vacanzeMgr.vacanze,
+      scuola: scuolaMgr.toJSON()
     });
   } catch (error) {
     console.error("Errore salvataggio Firestore:", error);
@@ -724,6 +730,265 @@ function renderSpeseSummary() {
 }
 
 // -------------------------------------------------------------
+// GESTIONE MODULO SCUOLA
+// -------------------------------------------------------------
+
+// --- Orario Settimanale ---
+window.addScuolaLezione = function() {
+  const giorno = document.getElementById('scuolaGiornoSelect')?.value;
+  const materia = document.getElementById('scuolaMateriaInput')?.value.trim();
+  const oraInizio = document.getElementById('scuolaOraInizioInput')?.value;
+  const oraFine = document.getElementById('scuolaOraFineInput')?.value;
+
+  if (!materia) {
+    alert("Inserisci la materia!");
+    return;
+  }
+
+  scuolaMgr.addLezione(giorno, materia, oraInizio, oraFine);
+  saveDataToFirestore();
+
+  if (document.getElementById('scuolaMateriaInput')) document.getElementById('scuolaMateriaInput').value = '';
+};
+
+window.deleteScuolaLezione = function(giorno, id) {
+  scuolaMgr.deleteLezione(giorno, id);
+  saveDataToFirestore();
+};
+
+// --- Compiti a Casa ---
+window.addScuolaCompito = function() {
+  const materia = document.getElementById('compitoMateriaInput')?.value.trim();
+  const desc = document.getElementById('compitoDescInput')?.value.trim();
+  const scadenza = document.getElementById('compitoScadenzaInput')?.value;
+
+  if (!materia || !desc || !scadenza) {
+    alert("Inserisci materia, descrizione e data di scadenza!");
+    return;
+  }
+
+  scuolaMgr.addCompito(materia, desc, scadenza);
+  saveDataToFirestore();
+
+  if (document.getElementById('compitoMateriaInput')) document.getElementById('compitoMateriaInput').value = '';
+  if (document.getElementById('compitoDescInput')) document.getElementById('compitoDescInput').value = '';
+};
+
+window.toggleScuolaCompito = function(id) {
+  scuolaMgr.toggleCompito(id);
+  saveDataToFirestore();
+};
+
+window.deleteScuolaCompito = function(id) {
+  scuolaMgr.deleteCompito(id);
+  saveDataToFirestore();
+};
+
+// --- Comunicazioni & Avvisi ---
+window.addScuolaComunicazione = function() {
+  const titolo = document.getElementById('comunicazioneTitoloInput')?.value.trim();
+  const desc = document.getElementById('comunicazioneDescInput')?.value.trim();
+  const data = document.getElementById('comunicazioneDataInput')?.value;
+
+  if (!titolo) {
+    alert("Inserisci almeno il titolo della comunicazione!");
+    return;
+  }
+
+  scuolaMgr.addComunicazione(titolo, desc, data);
+  saveDataToFirestore();
+
+  if (document.getElementById('comunicazioneTitoloInput')) document.getElementById('comunicazioneTitoloInput').value = '';
+  if (document.getElementById('comunicazioneDescInput')) document.getElementById('comunicazioneDescInput').value = '';
+};
+
+window.deleteScuolaComunicazione = function(id) {
+  scuolaMgr.deleteComunicazione(id);
+  saveDataToFirestore();
+};
+
+// --- Materiale Occorrente ---
+window.addScuolaMateriale = function() {
+  const nome = document.getElementById('materialeNomeInput')?.value.trim();
+  const note = document.getElementById('materialeNoteInput')?.value.trim();
+
+  if (!nome) {
+    alert("Inserisci l'oggetto o il materiale occorrente!");
+    return;
+  }
+
+  scuolaMgr.addMateriale(nome, note);
+  saveDataToFirestore();
+
+  if (document.getElementById('materialeNomeInput')) document.getElementById('materialeNomeInput').value = '';
+  if (document.getElementById('materialeNoteInput')) document.getElementById('materialeNoteInput').value = '';
+};
+
+window.toggleScuolaMateriale = function(id) {
+  scuolaMgr.toggleMateriale(id);
+  saveDataToFirestore();
+};
+
+window.deleteScuolaMateriale = function(id) {
+  scuolaMgr.deleteMateriale(id);
+  saveDataToFirestore();
+};
+
+// --- Eventi Scolastici (Gite, Colloqui, Recite) ---
+window.addScuolaEvento = function() {
+  const titolo = document.getElementById('eventoScuolaTitoloInput')?.value.trim();
+  const data = document.getElementById('eventoScuolaDataInput')?.value;
+  const ora = document.getElementById('eventoScuolaOraInput')?.value;
+  const tipo = document.getElementById('eventoScuolaTipoSelect')?.value || 'altro';
+  const note = document.getElementById('eventoScuolaNoteInput')?.value.trim();
+
+  if (!titolo || !data) {
+    alert("Inserisci titolo e data dell'evento scolastico!");
+    return;
+  }
+
+  scuolaMgr.addEvento(titolo, data, ora, tipo, note);
+  saveDataToFirestore();
+
+  if (document.getElementById('eventoScuolaTitoloInput')) document.getElementById('eventoScuolaTitoloInput').value = '';
+  if (document.getElementById('eventoScuolaNoteInput')) document.getElementById('eventoScuolaNoteInput').value = '';
+};
+
+window.deleteScuolaEvento = function(id) {
+  scuolaMgr.deleteEvento(id);
+  saveDataToFirestore();
+};
+
+// --- Render Modulo Scuola completo ---
+function renderScuola() {
+  // 1. Orario Settimanale
+  const days = ['lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi'];
+  days.forEach(giorno => {
+    const list = document.getElementById(`scuolaOrarioList_${giorno}`);
+    if (list) {
+      list.innerHTML = '';
+      const lezioni = scuolaMgr.scuola.orario[giorno] || [];
+      if (lezioni.length === 0) {
+        list.innerHTML = `<li style="color: var(--text-muted); font-size: 0.8rem;">Nessuna lezione</li>`;
+      } else {
+        lezioni.forEach(l => {
+          const li = document.createElement('li');
+          li.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem;";
+          const timeStr = l.oraInizio ? `${l.oraInizio}${l.oraFine ? ' - ' + l.oraFine : ''}` : '';
+          li.innerHTML = `
+            <span><strong>${l.materia}</strong> ${timeStr ? `<small style="color:var(--text-muted);">(${timeStr})</small>` : ''}</span>
+            <button style="background:none; border:none; cursor:pointer;" onclick="deleteScuolaLezione('${giorno}', '${l.id}')">🗑️</button>
+          `;
+          list.appendChild(li);
+        });
+      }
+    }
+  });
+
+  // 2. Compiti
+  const compitiList = document.getElementById('scuolaCompitiList');
+  if (compitiList) {
+    compitiList.innerHTML = '';
+    const compiti = scuolaMgr.scuola.compiti || [];
+    if (compiti.length === 0) {
+      compitiList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem;">Nessun compito registrato.</p>`;
+    } else {
+      compiti.forEach(c => {
+        const div = document.createElement('div');
+        div.style.cssText = `display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem; ${c.completato ? 'opacity: 0.6;' : ''}`;
+        const dFormattata = c.scadenza ? c.scadenza.split('-').reverse().join('/') : '';
+        div.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" ${c.completato ? 'checked' : ''} onchange="toggleScuolaCompito('${c.id}')" style="cursor: pointer;">
+            <span style="${c.completato ? 'text-decoration: line-through;' : ''}">
+              <strong>[${c.materia}]</strong> ${c.descrizione} ${dFormattata ? `<small style="color:var(--text-muted);">(Entro ${dFormattata})</small>` : ''}
+            </span>
+          </div>
+          <button style="background:none; border:none; cursor:pointer;" onclick="deleteScuolaCompito('${c.id}')">🗑️</button>
+        `;
+        compitiList.appendChild(div);
+      });
+    }
+  }
+
+  // 3. Comunicazioni & Avvisi
+  const comunicazioniList = document.getElementById('scuolaComunicazioniList');
+  if (comunicazioniList) {
+    comunicazioniList.innerHTML = '';
+    const comunicazioni = scuolaMgr.scuola.comunicazioni || [];
+    if (comunicazioni.length === 0) {
+      comunicazioniList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem;">Nessuna comunicazione inserita.</p>`;
+    } else {
+      comunicazioni.forEach(c => {
+        const div = document.createElement('div');
+        div.style.cssText = `display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem;`;
+        const dFormattata = c.data ? c.data.split('-').reverse().join('/') : '';
+        div.innerHTML = `
+          <div>
+            <strong>📌 ${c.titolo}</strong> ${dFormattata ? `<small style="color:var(--text-muted);">(${dFormattata})</small>` : ''}
+            ${c.descrizione ? `<p style="margin: 2px 0 0 0; color: var(--text-muted); font-size:0.8rem;">${c.descrizione}</p>` : ''}
+          </div>
+          <button style="background:none; border:none; cursor:pointer;" onclick="deleteScuolaComunicazione('${c.id}')">🗑️</button>
+        `;
+        comunicazioniList.appendChild(div);
+      });
+    }
+  }
+
+  // 4. Materiale Occorrente
+  const materialeList = document.getElementById('scuolaMaterialeList');
+  if (materialeList) {
+    materialeList.innerHTML = '';
+    const materiale = scuolaMgr.scuola.materiale || [];
+    if (materiale.length === 0) {
+      materialeList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem;">Nessun materiale in elenco.</p>`;
+    } else {
+      materiale.forEach(m => {
+        const div = document.createElement('div');
+        div.style.cssText = `display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem; ${m.preso ? 'opacity: 0.6;' : ''}`;
+        div.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" ${m.preso ? 'checked' : ''} onchange="toggleScuolaMateriale('${m.id}')" style="cursor: pointer;">
+            <span style="${m.preso ? 'text-decoration: line-through;' : ''}">
+              <strong>${m.nome}</strong> ${m.note ? `<small style="color:var(--text-muted);">(${m.note})</small>` : ''}
+            </span>
+          </div>
+          <button style="background:none; border:none; cursor:pointer;" onclick="deleteScuolaMateriale('${m.id}')">🗑️</button>
+        `;
+        materialeList.appendChild(div);
+      });
+    }
+  }
+
+  // 5. Eventi Scolastici
+  const eventiList = document.getElementById('scuolaEventiList');
+  if (eventiList) {
+    eventiList.innerHTML = '';
+    const eventi = scuolaMgr.scuola.eventi || [];
+    if (eventi.length === 0) {
+      eventiList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem;">Nessun evento programmato.</p>`;
+    } else {
+      eventi.forEach(e => {
+        const div = document.createElement('div');
+        div.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem;`;
+        const dFormattata = e.data ? e.data.split('-').reverse().join('/') : '';
+        const badgeMap = { gita: '🎒 Gita', colloquio: '🗣️ Colloquio', recita: '🎭 Recita', altro: '📅 Altro' };
+        
+        div.innerHTML = `
+          <div>
+            <span class="event-badge generico">${badgeMap[e.tipo] || '📅 Altro'}</span>
+            <strong>${e.titolo}</strong> - <span>${dFormattata} ${e.ora ? `ore ${e.ora}` : ''}</span>
+            ${e.note ? `<br/><small style="color:var(--text-muted);">${e.note}</small>` : ''}
+          </div>
+          <button style="background:none; border:none; cursor:pointer;" onclick="deleteScuolaEvento('${e.id}')">🗑️</button>
+        `;
+        eventiList.appendChild(div);
+      });
+    }
+  }
+}
+
+// -------------------------------------------------------------
 // ESPORTAZIONE & STATISTICHE
 // -------------------------------------------------------------
 window.exportToExcel = function() {
@@ -818,6 +1083,7 @@ function render() {
   renderSpeseSummary();
   renderVacanze();
   renderSalute();
+  renderScuola();
   window.calculateStats();
 }
 
