@@ -22,6 +22,29 @@ let currentDate = new Date();
 let deferredPrompt = null;
 
 // -------------------------------------------------------------
+// HELPER PER DETERMINARE IL GENITORE DEL GIORNO (Con Priorità Vacanze)
+// -------------------------------------------------------------
+function getParentForDateWithVacanze(date) {
+  const dateKey = turniMgr.formatDateKey(date);
+  
+  // 1. Priorità massima: Override manuale del singolo giorno
+  if (turniMgr.overrides && turniMgr.overrides[dateKey]) {
+    return { parent: turniMgr.overrides[dateKey], isOverride: true, isVacanza: false };
+  }
+
+  // 2. Seconda priorità: Blocco Vacanza
+  if (vacanzeMgr && vacanzeMgr.vacanze) {
+    const vacanzaMatch = vacanzeMgr.vacanze.find(v => dateKey >= v.dataInizio && dateKey <= v.dataFine);
+    if (vacanzaMatch) {
+      return { parent: vacanzaMatch.assegnatoA, isOverride: false, isVacanza: true, titoloVacanza: vacanzaMatch.titolo };
+    }
+  }
+
+  // 3. Calcolo di rotazione standard
+  return turniMgr.getParentForDate(date);
+}
+
+// -------------------------------------------------------------
 // LOGICA INSTALLAZIONE PWA
 // -------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
@@ -160,6 +183,7 @@ async function saveDataToFirestore() {
     });
   } catch (error) {
     console.error("Errore salvataggio Firestore:", error);
+    alert("❌ Errore durante il salvataggio dei dati. Verifica la connessione.");
   }
 }
 
@@ -172,14 +196,15 @@ window.openLogisticaModal = function(dateKey, event) {
 
   const data = logisticaMgr.getPassaggio(dateKey);
   document.getElementById('logisticaModalTitle').textContent = `🚗 Passaggio del ${dateKey.split('-').reverse().join('/')}`;
-  document.getElementById('logisticaLuogo').value = data.luogo;
-  document.getElementById('logisticaOra').value = data.ora;
-  document.getElementById('logisticaNote').value = data.note;
+  document.getElementById('logisticaLuogo').value = data.luogo || '';
+  document.getElementById('logisticaOra').value = data.ora || '';
+  document.getElementById('logisticaNote').value = data.note || '';
 
-  document.getElementById('checkVestiti').checked = !!data.checklist.vestiti;
-  document.getElementById('checkCartella').checked = !!data.checklist.cartella;
-  document.getElementById('checkLibretto').checked = !!data.checklist.libretto;
-  document.getElementById('checkGiochi').checked = !!data.checklist.giochi;
+  const chk = data.checklist || {};
+  document.getElementById('checkVestiti').checked = !!chk.vestiti;
+  document.getElementById('checkCartella').checked = !!chk.cartella;
+  document.getElementById('checkLibretto').checked = !!chk.libretto;
+  document.getElementById('checkGiochi').checked = !!chk.giochi;
 
   document.getElementById('logisticaModal').classList.add('active');
 };
@@ -233,6 +258,11 @@ window.saveVacanzaBlock = function() {
     return;
   }
 
+  if (inizio > fine) {
+    alert("La data di inizio non può essere successiva alla data di fine!");
+    return;
+  }
+
   vacanzeMgr.addVacanzeBlock(titolo, inizio, fine, assegnato);
   saveDataToFirestore();
   window.closeVacanzeModal();
@@ -265,11 +295,11 @@ function renderVacanze() {
 
     card.innerHTML = `
       <div>
-        <strong style="display:block; font-size:0.95rem;">${v.titolo}</strong>
+        <strong style="display:block; font-size:0.95rem;">🏖️ ${v.titolo}</strong>
         <span style="font-size:0.8rem; color:var(--text-muted);">${dInizio} - ${dFine}</span>
         <span style="font-size:0.75rem; font-weight:700; color:${color}; display:block; margin-top:2px;">Con ${v.assegnatoA === 'papa' ? 'Papà' : 'Mamma'}</span>
       </div>
-      <button style="background:none; border:none; cursor:pointer;" onclick="deleteVacanzaBlock('${v.id}')">🗑️</button>
+      <button style="background:none; border:none; cursor:pointer; font-size:1.1rem;" onclick="deleteVacanzaBlock('${v.id}')">🗑️</button>
     `;
     container.appendChild(card);
   });
@@ -334,7 +364,7 @@ function renderSalute() {
 
   (saluteMgr.schede.visite || []).forEach(v => {
     const li = document.createElement('li');
-    li.style.cssText = "display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem;";
+    li.style.cssText = "display: flex; justify-content: space-between; align-items:center; padding: 5px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem;";
     li.innerHTML = `
       <span><strong>${v.data.split('-').reverse().join('/')}:</strong> ${v.descrizione}</span>
       <button style="background:none; border:none; cursor:pointer;" onclick="deleteVisitaMedica('${v.id}')">🗑️</button>
@@ -422,7 +452,7 @@ window.closeNoteModal = function() {
 };
 
 // -------------------------------------------------------------
-// SPESE
+// SPESE (Con ridimensionamento automatico immagini per Firestore)
 // -------------------------------------------------------------
 window.openSpesaModal = function() {
   const modal = document.getElementById('spesaModal');
@@ -440,7 +470,35 @@ window.closeSpesaModal = function() {
   if (modal) modal.classList.remove('active');
 };
 
-window.saveSpesa = function() {
+// Funzione di compressione immagine client-side
+function compressImage(file, maxWidth = 800, quality = 0.7) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.src = e.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+    };
+  });
+}
+
+window.saveSpesa = async function() {
   const desc = document.getElementById('spesaDesc').value.trim();
   const importo = document.getElementById('spesaImporto').value;
   const pagatoDa = document.getElementById('spesaPagatoDa').value;
@@ -453,20 +511,19 @@ window.saveSpesa = function() {
     return;
   }
 
+  let ricevutaBase64 = null;
   const file = fileInput.files[0];
   if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      speseMgr.addSpesa(desc, importo, pagatoDa, categoria, e.target.result, data);
-      saveDataToFirestore();
-      window.closeSpesaModal();
-    };
-    reader.readAsDataURL(file);
-  } else {
-    speseMgr.addSpesa(desc, importo, pagatoDa, categoria, null, data);
-    saveDataToFirestore();
-    window.closeSpesaModal();
+    try {
+      ricevutaBase64 = await compressImage(file);
+    } catch (err) {
+      console.error("Errore durante la compressione dell'immagine:", err);
+    }
   }
+
+  speseMgr.addSpesa(desc, importo, pagatoDa, categoria, ricevutaBase64, data);
+  await saveDataToFirestore();
+  window.closeSpesaModal();
 };
 
 window.deleteSpesa = function(id) {
@@ -480,7 +537,14 @@ window.viewRicevuta = function(id) {
   const spesa = speseMgr.spese.find(s => s.id === id);
   if (spesa && spesa.ricevuta) {
     const w = window.open("");
-    w.document.write(`<img src="${spesa.ricevuta}" style="max-width:100%; height:auto;" />`);
+    w.document.write(`
+      <html>
+        <head><title>Ricevuta ${spesa.descrizione}</title></head>
+        <body style="margin:0; background:#111; display:flex; justify-content:center; align-items:center; min-height:100vh;">
+          <img src="${spesa.ricevuta}" style="max-width:95%; max-height:95vh; object-fit:contain; border-radius:8px;" />
+        </body>
+      </html>
+    `);
   }
 };
 
@@ -522,7 +586,7 @@ function renderSpeseSummary() {
       <td style="padding: 8px; font-weight:600;">${spesa.descrizione}</td>
       <td style="padding: 8px;"><span class="event-badge ${spesa.categoria}">${spesa.categoria.toUpperCase()}</span></td>
       <td style="padding: 8px; font-weight:700; color: ${badgeColor};">${pagatoStr}</td>
-      <td style="padding: 8px; font-weight:800;">€ ${spesa.importo.toFixed(2)}</td>
+      <td style="padding: 8px; font-weight:800;">€ ${parseFloat(spesa.importo).toFixed(2)}</td>
       <td style="padding: 8px;">${ricevutaBtn}</td>
       <td style="padding: 8px; text-align: center;">
         <button style="background:none; border:none; cursor:pointer;" onclick="deleteSpesa('${spesa.id}')">🗑️</button>
@@ -536,11 +600,11 @@ function renderSpeseSummary() {
 // ESPORTAZIONE & STATISTICHE
 // -------------------------------------------------------------
 window.exportToExcel = function() {
-  ExportManager.exportToExcel(currentDate, (d) => turniMgr.getParentForDate(d), notes);
+  ExportManager.exportToExcel(currentDate, (d) => getParentForDateWithVacanze(d), notes);
 };
 
 window.exportToICal = function() {
-  ExportManager.generateICalendar(currentDate, (d) => turniMgr.getParentForDate(d), notes);
+  ExportManager.generateICalendar(currentDate, (d) => getParentForDateWithVacanze(d), notes);
 };
 
 window.calculateStats = function() {
@@ -556,7 +620,7 @@ window.calculateStats = function() {
   let curr = new Date(startDate);
 
   while (curr <= endDate) {
-    const status = turniMgr.getParentForDate(curr);
+    const status = getParentForDateWithVacanze(curr);
     if (status?.parent === 'papa') countPapa++;
     else if (status?.parent === 'mamma') countMamma++;
     else countUndefined++;
@@ -701,12 +765,21 @@ function renderGrid() {
       cell.appendChild(eventBadge);
     }
 
-    const status = turniMgr.getParentForDate(date);
+    // Utilizzo della nuova funzione con supporto Vacanze integrato
+    const status = getParentForDateWithVacanze(date);
     if (status && status.parent) {
       const badge = document.createElement('div');
       badge.className = `badge ${status.parent}`;
-      badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
-      if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
+      let label = status.parent === 'papa' ? 'Papà' : 'Mamma';
+      
+      if (status.isVacanza) {
+        badge.innerHTML = `<span>${label} 🏖️</span>`;
+      } else if (status.isOverride) {
+        badge.innerHTML = `<span>${label}</span><span class="badge-changed">Cambio</span>`;
+      } else {
+        badge.innerHTML = `<span>${label}</span>`;
+      }
+      
       cell.appendChild(badge);
     }
 
@@ -750,12 +823,18 @@ function renderList() {
     const right = document.createElement('div');
     right.className = 'list-item-right';
 
-    const status = turniMgr.getParentForDate(date);
+    const status = getParentForDateWithVacanze(date);
     if (status && status.parent) {
       const badge = document.createElement('div');
       badge.className = `badge ${status.parent}`;
-      badge.innerHTML = `<span>${status.parent === 'papa' ? 'Papà' : 'Mamma'}</span>`;
-      if (status.isOverride) badge.innerHTML += `<span class="badge-changed">Cambio</span>`;
+      let label = status.parent === 'papa' ? 'Papà' : 'Mamma';
+      if (status.isVacanza) {
+        badge.innerHTML = `<span>${label} 🏖️</span>`;
+      } else if (status.isOverride) {
+        badge.innerHTML = `<span>${label}</span><span class="badge-changed">Cambio</span>`;
+      } else {
+        badge.innerHTML = `<span>${label}</span>`;
+      }
       right.appendChild(badge);
     }
 
