@@ -235,6 +235,116 @@ window.closeNoteModal = function() {
 };
 
 // -------------------------------------------------------------
+// LOGICA E RENDERING DEL MODULO SPESE
+// -------------------------------------------------------------
+window.openSpesaModal = function() {
+  document.getElementById('spesaDesc').value = '';
+  document.getElementById('spesaImporto').value = '';
+  document.getElementById('spesaData').value = new Date().toISOString().split('T')[0];
+  document.getElementById('spesaRicevutaInput').value = '';
+  document.getElementById('spesaModal').classList.add('active');
+};
+
+window.closeSpesaModal = function() {
+  document.getElementById('spesaModal').classList.remove('active');
+};
+
+window.saveSpesa = function() {
+  const desc = document.getElementById('spesaDesc').value.trim();
+  const importo = document.getElementById('spesaImporto').value;
+  const pagatoDa = document.getElementById('spesaPagatoDa').value;
+  const categoria = document.getElementById('spesaCategoria').value;
+  const data = document.getElementById('spesaData').value;
+  const fileInput = document.getElementById('spesaRicevutaInput');
+
+  if (!desc || !importo || isNaN(importo)) {
+    alert("Inserisci una descrizione e un importo valido!");
+    return;
+  }
+
+  const file = fileInput.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      speseMgr.addSpesa(desc, importo, pagatoDa, categoria, e.target.result, data);
+      saveDataToFirestore();
+      closeSpesaModal();
+    };
+    reader.readAsDataURL(file);
+  } else {
+    speseMgr.addSpesa(desc, importo, pagatoDa, categoria, null, data);
+    saveDataToFirestore();
+    closeSpesaModal();
+  }
+};
+
+window.deleteSpesa = function(id) {
+  if (confirm("Sei sicuro di voler eliminare questa spesa?")) {
+    speseMgr.deleteSpesa(id);
+    saveDataToFirestore();
+  }
+};
+
+window.viewRicevuta = function(id) {
+  const spesa = speseMgr.spese.find(s => s.id === id);
+  if (spesa && spesa.ricevuta) {
+    const w = window.open("");
+    w.document.write(`<img src="${spesa.ricevuta}" style="max-width:100%; height:auto;" />`);
+  }
+};
+
+function renderSpeseSummary() {
+  const saldoBox = document.getElementById('speseSaldoInfo');
+  const tbody = document.getElementById('speseTableBody');
+  if (!saldoBox || !tbody) return;
+
+  // Render Saldo
+  const saldo = speseMgr.calculateSaldo();
+  if (!saldo.debitore) {
+    saldoBox.innerHTML = "<strong>Conti in pari</strong> (nessun conguaglio pendente)";
+  } else {
+    const debitoreStr = saldo.debitore === 'mamma' ? 'Mamma' : 'Papà';
+    const creditoreStr = saldo.creditore === 'papa' ? 'Papà' : 'Mamma';
+    saldoBox.innerHTML = `<strong>${debitoreStr}</strong> deve a <strong>${creditoreStr}</strong>: <span style="color:var(--spesa-color, #ef4444); font-weight:800;">€ ${saldo.importo.toFixed(2)}</span>`;
+  }
+
+  // Render Tabella Storico
+  tbody.innerHTML = '';
+  if (speseMgr.spese.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 12px; color: var(--text-muted);">Nessuna spesa registrata.</td></tr>`;
+    return;
+  }
+
+  // Ordina le spese dalla più recente
+  const speseOrdinate = [...speseMgr.spese].sort((a, b) => new Date(b.data) - new Date(a.data));
+
+  speseOrdinate.forEach(spesa => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--surface-border)';
+
+    const formattedDate = spesa.data.split('-').reverse().join('/');
+    const pagatoStr = spesa.pagatoDa === 'papa' ? 'Papà' : 'Mamma';
+    const badgeColor = spesa.pagatoDa === 'papa' ? 'var(--papa-color, #2563eb)' : 'var(--mamma-color, #ec4899)';
+    const ricevutaBtn = spesa.ricevuta 
+      ? `<button class="btn" style="padding: 2px 8px; font-size: 0.75rem;" onclick="viewRicevuta('${spesa.id}')">📎 Vedi</button>` 
+      : `<span style="color:var(--text-muted); font-size: 0.75rem;">-</span>`;
+
+    tr.innerHTML = `
+      <td style="padding: 8px;">${formattedDate}</td>
+      <td style="padding: 8px; font-weight:600;">${spesa.descrizione}</td>
+      <td style="padding: 8px;"><span class="event-badge ${spesa.categoria}">${spesa.categoria.toUpperCase()}</span></td>
+      <td style="padding: 8px; font-weight:700; color: ${badgeColor};">${pagatoStr}</td>
+      <td style="padding: 8px; font-weight:800;">€ ${spesa.importo.toFixed(2)}</td>
+      <td style="padding: 8px;">${ricevutaBtn}</td>
+      <td style="padding: 8px; text-align: center;">
+        <button style="background:none; border:none; cursor:pointer;" onclick="deleteSpesa('${spesa.id}')">🗑️</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// -------------------------------------------------------------
 // ESPORTAZIONE & STATISTICHE
 // -------------------------------------------------------------
 window.exportToExcel = function() {
@@ -458,20 +568,6 @@ function renderList() {
     item.onclick = () => window.toggleDayOverride(dateKey);
 
     list.appendChild(item);
-  }
-}
-
-function renderSpeseSummary() {
-  const saldoBox = document.getElementById('speseSaldoInfo');
-  if (!saldoBox) return;
-
-  const saldo = speseMgr.calculateSaldo();
-  if (!saldo.debitore) {
-    saldoBox.textContent = "Conti in pari (nessun conguaglio pendente)";
-  } else {
-    const debitoreStr = saldo.debitore === 'mamma' ? 'Mamma' : 'Papà';
-    const creditoreStr = saldo.creditore === 'papa' ? 'Papà' : 'Mamma';
-    saldoBox.innerHTML = `<strong>${debitoreStr}</strong> deve a <strong>${creditoreStr}</strong>: € ${saldo.importo.toFixed(2)}`;
   }
 }
 
