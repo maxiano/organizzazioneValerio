@@ -8,7 +8,7 @@ export class FestivitaManager {
       capodanno: { nome: 'Capodanno (31 Dic - 1 Gen)', pari: 'mamma', inizio: '12-31', fine: '01-01' },
       epifania: { nome: 'Epifania (6 Gen)', pari: 'papa', inizio: '01-06', fine: '01-06' },
       pasqua: { nome: 'Pasqua & Pasquetta', pari: 'mamma', mobile: true },
-      compleanno_valerio: { nome: 'Compleanno Valerio', pari: 'papa', inizio: '05-15', fine: '05-15' }, // Personalizza la data (MM-DD)
+      compleanno_valerio: { nome: 'Compleanno Valerio (2 Ago)', pari: 'papa', inizio: '08-02', fine: '08-02' },
       ferragosto: { nome: 'Ferragosto (15 Ago)', pari: 'mamma', inizio: '08-15', fine: '08-15' }
     };
 
