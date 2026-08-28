@@ -58,9 +58,6 @@ function getParentForDateWithVacanze(date) {
   // 3. Calcolo di rotazione standard
   return defaultTurno;
 }
-  // 3. Calcolo di rotazione standard
-  return turniMgr.getParentForDate(date);
-}
 
 // -------------------------------------------------------------
 // LOGICA INSTALLAZIONE PWA
