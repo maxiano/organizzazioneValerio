@@ -1,18 +1,32 @@
 export class LogisticaManager {
   constructor() {
-    this.passaggi = {}; // { 'YYYY-MM-DD': { luogo: 'Scuola', ora: '16:30', note: 'Zaino palestra' } }
+    this.passaggi = {};
   }
 
-  setPassaggi(data = {}) {
-    this.passaggi = data;
-  }
-
-  setPassaggioData(dateKey, luogo, ora, note = '') {
-    this.passaggi[dateKey] = { luogo, ora, note };
-    return this.passaggi;
+  setPassaggi(data) {
+    this.passaggi = data || {};
   }
 
   getPassaggio(dateKey) {
-    return this.passaggi[dateKey] || null;
+    return this.passaggi[dateKey] || {
+      luogo: '',
+      ora: '',
+      note: '',
+      checklist: {
+        vestiti: false,
+        cartella: false,
+        libretto: false,
+        giochi: false
+      }
+    };
+  }
+
+  savePassaggio(dateKey, luogo, ora, note, checklist) {
+    this.passaggi[dateKey] = {
+      luogo: luogo || '',
+      ora: ora || '',
+      note: note || '',
+      checklist: checklist || { vestiti: false, cartella: false, libretto: false, giochi: false }
+    };
   }
 }
