@@ -7,6 +7,10 @@ import { SaluteManager } from "./modules/SaluteManager.js";
 import { VacanzeManager } from "./modules/VacanzeManager.js";
 import { ExportManager } from "./modules/ExportManager.js";
 import { FestivitaManager } from './modules/FestivitaManager.js';
+import { SpesaTaglieManager } from './modules/SpesaTaglieManager.js';
+
+
+
 
 // Inizializzazione Istanze Moduli
 const turniMgr = new TurniManager();
@@ -15,6 +19,7 @@ const logisticaMgr = new LogisticaManager();
 const saluteMgr = new SaluteManager();
 const vacanzeMgr = new VacanzeManager();
 const festivitaManager = new FestivitaManager();
+const spesaTaglieMgr = new SpesaTaglieManager();
 
 let notes = {};
 let activeDateKeyForNote = null;
@@ -112,6 +117,91 @@ window.addEventListener('appinstalled', () => {
   const installBtn = document.getElementById('btnInstall');
   if (installBtn) installBtn.style.display = 'none';
 });
+
+// 3. Funzione di rendering da chiamare quando si aggiornano i dati
+function renderSpesaTaglie() {
+  const data = spesaTaglieMgr.getData();
+
+  // Popola i campi delle taglie
+  const tScarpe = document.getElementById('tagliaScarpe');
+  const tMagliette = document.getElementById('tagliaMagliette');
+  const tPantaloni = document.getElementById('tagliaPantaloni');
+  const tIntimo = document.getElementById('tagliaIntimo');
+
+  if (tScarpe) tScarpe.value = data.taglie.scarpe || '';
+  if (tMagliette) tMagliette.value = data.taglie.magliette || '';
+  if (tPantaloni) tPantaloni.value = data.taglie.pantaloni || '';
+  if (tIntimo) tIntimo.value = data.taglie.intimo || '';
+
+  // Popola la lista della spesa
+  const container = document.getElementById('listaSpesaContainer');
+  if (!container) return;
+
+  container.innerHTML = '';
+  if (!data.listaSpesa || data.listaSpesa.length === 0) {
+    container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; margin:0;">Nessun articolo in lista.</p>`;
+    return;
+  }
+
+  data.listaSpesa.forEach(item => {
+    const div = document.createElement('div');
+    div.style.cssText = `display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem; ${item.comprato ? 'opacity: 0.55;' : ''}`;
+
+    div.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+        <input type="checkbox" ${item.comprato ? 'checked' : ''} onchange="toggleArticoloSpesa('${item.id}')" style="cursor: pointer; width: 16px; height: 16px;">
+        <span style="${item.comprato ? 'text-decoration: line-through;' : ''}">
+          <strong>${item.testo}</strong> ${item.note ? `<small style="color:var(--text-muted);">(${item.note})</small>` : ''}
+        </span>
+      </div>
+      <button style="background:none; border:none; cursor:pointer;" onclick="deleteArticoloSpesa('${item.id}')">🗑️</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// 4. Esponi le funzioni su window per l'onclick dell'HTML
+window.saveTaglieValerio = function() {
+  const scarpe = document.getElementById('tagliaScarpe')?.value || '';
+  const magliette = document.getElementById('tagliaMagliette')?.value || '';
+  const pantaloni = document.getElementById('tagliaPantaloni')?.value || '';
+  const intimo = document.getElementById('tagliaIntimo')?.value || '';
+
+  spesaTaglieMgr.updateTaglie(scarpe, magliette, pantaloni, intimo);
+  if (typeof saveDataToFirestore === 'function') saveDataToFirestore();
+  alert("Taglie aggiornate con successo!");
+};
+
+window.addArticoloSpesa = function() {
+  const inputTesto = document.getElementById('nuovoArticoloSpesa');
+  const inputNote = document.getElementById('noteArticoloSpesa');
+  const testo = inputTesto?.value.trim();
+  const note = inputNote?.value.trim();
+
+  if (!testo) {
+    alert("Inserisci il nome dell'articolo da comprare!");
+    return;
+  }
+
+  spesaTaglieMgr.addItemSpesa(testo, note);
+  if (inputTesto) inputTesto.value = '';
+  if (inputNote) inputNote.value = '';
+
+  renderSpesaTaglie();
+  if (typeof saveDataToFirestore === 'function') saveDataToFirestore();
+};
+
+window.toggleArticoloSpesa = function(id) {
+  spesaTaglieMgr.toggleItemSpesa(id);
+  renderSpesaTaglie();
+  if (typeof saveDataToFirestore === 'function') saveDataToFirestore();
+};
+
+window.deleteArticoloSpesa = function(id) {
+  spesaTaglieMgr.deleteItemSpesa(id);
+  renderSpesaTaglie();
+  if (typeof saveDataToFirestore === 'function') saveDataToFirestore();
+};
 
 // -------------------------------------------------------------
 // CONTROLLI TEMA & VISTA
