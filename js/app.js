@@ -856,6 +856,9 @@ window.closeNoteModal = function() {
 // -------------------------------------------------------------
 // SPESE
 // -------------------------------------------------------------
+// -------------------------------------------------------------
+// SPESE
+// -------------------------------------------------------------
 window.openSpesaModal = function() {
   const modal = document.getElementById('spesaModal');
   if (!modal) return;
@@ -864,6 +867,11 @@ window.openSpesaModal = function() {
   document.getElementById('spesaImporto').value = '';
   document.getElementById('spesaData').value = new Date().toISOString().split('T')[0];
   document.getElementById('spesaRicevutaInput').value = '';
+  
+  // Reset selettore modalità
+  const modalitaSelect = document.getElementById('spesaModalita');
+  if (modalitaSelect) modalitaSelect.value = 'intero';
+
   modal.classList.add('active');
 };
 
@@ -906,8 +914,11 @@ window.saveSpesa = async function() {
   const categoria = document.getElementById('spesaCategoria').value;
   const data = document.getElementById('spesaData').value;
   const fileInput = document.getElementById('spesaRicevutaInput');
+  
+  // Recupero della nuova modalità selezionata
+  const modalita = document.getElementById('spesaModalita')?.value || 'intero';
 
-  if (!desc || !importo || isNaN(importo)) {
+  if (!desc || !importo || isNaN(importo) || parseFloat(importo) <= 0) {
     alert("Inserisci una descrizione e un importo valido!");
     return;
   }
@@ -922,7 +933,8 @@ window.saveSpesa = async function() {
     }
   }
 
-  speseMgr.addSpesa(desc, importo, pagatoDa, categoria, ricevutaBase64, data);
+  // Chiamata con il parametro modalita
+  speseMgr.addSpesa(desc, importo, pagatoDa, categoria, ricevutaBase64, data, modalita);
   await saveDataToFirestore();
   window.closeSpesaModal();
 };
@@ -965,7 +977,7 @@ function renderSpeseSummary() {
 
   tbody.innerHTML = '';
   if (speseMgr.spese.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 12px; color: var(--text-muted);">Nessuna spesa registrata.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 12px; color: var(--text-muted);">Nessuna spesa registrata.</td></tr>`;
     return;
   }
 
@@ -978,6 +990,12 @@ function renderSpeseSummary() {
     const formattedDate = spesa.data.split('-').reverse().join('/');
     const pagatoStr = spesa.pagatoDa === 'papa' ? 'Papà' : 'Mamma';
     const badgeColor = spesa.pagatoDa === 'papa' ? 'var(--papa-color, #2563eb)' : 'var(--mamma-color, #ec4899)';
+
+    // Formatting badge per la modalità
+    const modalitaStr = spesa.modalita === 'quota_propria'
+      ? `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">50% Quota</span>`
+      : `<span style="background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">100% Intero</span>`;
+
     const ricevutaBtn = spesa.ricevuta 
       ? `<button class="btn" style="padding: 2px 8px; font-size: 0.75rem;" onclick="viewRicevuta('${spesa.id}')">📎 Vedi</button>` 
       : `<span style="color:var(--text-muted); font-size: 0.75rem;">-</span>`;
@@ -987,6 +1005,7 @@ function renderSpeseSummary() {
       <td style="padding: 8px; font-weight:600;">${spesa.descrizione}</td>
       <td style="padding: 8px;"><span class="event-badge ${spesa.categoria}">${spesa.categoria.toUpperCase()}</span></td>
       <td style="padding: 8px; font-weight:700; color: ${badgeColor};">${pagatoStr}</td>
+      <td style="padding: 8px;">${modalitaStr}</td>
       <td style="padding: 8px; font-weight:800;">€ ${parseFloat(spesa.importo).toFixed(2)}</td>
       <td style="padding: 8px;">${ricevutaBtn}</td>
       <td style="padding: 8px; text-align: center;">
