@@ -543,7 +543,7 @@ body {
 }
 
 /* ==========================================================================
-   SEZIONE COMPONENTI MODULARI & FORM SOTTO IL CALENDARIO (REDISIGNED)
+   SEZIONE COMPONENTI MODULARI & FORM SOTTO IL CALENDARIO
    ========================================================================== */
 .module-section {
   background: var(--surface-bg);
@@ -573,6 +573,7 @@ body {
 .module-section.spese-module::before { background: var(--spesa-color); }
 .module-section.salute-module::before { background: var(--salute-color); }
 .module-section.logistica-module::before { background: var(--logistica-color); }
+.module-section.festivita-module::before { background: #f59e0b; }
 
 .module-section h3 {
   font-size: 1.15rem;
@@ -717,6 +718,49 @@ body {
 }
 
 /* ==========================================================================
+   BADGE MODALITÀ SPESA & TABELLE
+   ========================================================================== */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.badge-modalita {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.badge-modalita.intero {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.badge-modalita.quota {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+[data-theme="dark"] .badge-modalita.intero {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+[data-theme="dark"] .badge-modalita.quota {
+  background: rgba(3, 105, 161, 0.25);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+/* ==========================================================================
    MODALE (POPUP NOTE, SPESE, SALUTE)
    ========================================================================== */
 .modal-overlay {
@@ -735,7 +779,7 @@ body {
   z-index: 1000;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.25 ease;
+  transition: opacity 0.25s ease;
 }
 
 .modal-overlay.active {
@@ -869,11 +913,8 @@ body {
   background: #dc2626;
   box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
 }
-/* Tematizzazione Modulo Festività */
-.module-section.festivita-module::before {
-  background: #f59e0b; /* Colore Ambra / Festivo */
-}
 
+/* Tematizzazione Modulo Festività */
 .event-badge.festivita {
   background: #fef3c7;
   color: #b45309;
