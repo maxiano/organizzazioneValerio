@@ -214,7 +214,6 @@ body {
   border-color: var(--primary);
 }
 
-/* Pulsante PWA Speciale */
 #btnInstall {
   background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
   color: #ffffff;
@@ -489,19 +488,22 @@ body {
   margin-top: 2px;
 }
 
-.event-badge.spesa {
-  background: var(--spesa-bg);
-  color: var(--spesa-color);
+.event-badge.spesa { background: var(--spesa-bg); color: var(--spesa-color); }
+.event-badge.salute { background: var(--salute-bg); color: var(--salute-color); }
+.event-badge.logistica { background: var(--logistica-bg); color: var(--logistica-color); }
+
+/* Tematizzazione Modulo Festività */
+.event-badge.festivita {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  font-weight: 700;
 }
 
-.event-badge.salute {
-  background: var(--salute-bg);
-  color: var(--salute-color);
-}
-
-.event-badge.logistica {
-  background: var(--logistica-bg);
-  color: var(--logistica-color);
+[data-theme="dark"] .event-badge.festivita {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.3);
 }
 
 /* ==========================================================================
@@ -569,7 +571,6 @@ body {
   border-bottom-left-radius: var(--radius-lg);
 }
 
-/* Tematizzazione bordi laterali per categoria */
 .module-section.spese-module::before { background: var(--spesa-color); }
 .module-section.salute-module::before { background: var(--salute-color); }
 .module-section.logistica-module::before { background: var(--logistica-color); }
@@ -586,7 +587,6 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Layout Form Generico Moduli */
 .module-section form,
 .module-form {
   display: flex;
@@ -605,7 +605,6 @@ body {
   gap: 14px;
 }
 
-/* Form Group & Labels */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -621,7 +620,6 @@ body {
   letter-spacing: 0.04em;
 }
 
-/* Input, Select & Textarea nei Form sotto il Calendario */
 .module-section input[type="text"],
 .module-section input[type="number"],
 .module-section input[type="date"],
@@ -712,11 +710,6 @@ body {
   box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
 }
 
-.module-section .btn-submit:active,
-.module-form button[type="submit"]:active {
-  transform: translateY(0);
-}
-
 /* ==========================================================================
    BADGE MODALITÀ SPESA & TABELLE
    ========================================================================== */
@@ -800,6 +793,8 @@ body {
   gap: 16px;
   transform: scale(0.95);
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal-overlay.active .modal-content {
@@ -846,7 +841,6 @@ body {
   background: var(--surface-bg);
 }
 
-/* Stili specifici per la spunta del cambio turno */
 .modal-checkbox-label {
   display: flex !important;
   flex-direction: row !important;
@@ -887,10 +881,6 @@ body {
   transition: all 0.2s ease;
 }
 
-.modal-actions button:hover {
-  transform: translateY(-1px);
-}
-
 .btn-primary {
   background: var(--primary);
   color: #ffffff;
@@ -914,16 +904,170 @@ body {
   box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
 }
 
-/* Tematizzazione Modulo Festività */
-.event-badge.festivita {
-  background: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
-  font-weight: 700;
-}
+/* ==========================================================================
+   OTTIMIZZAZIONE MOBILE & ADATTABILITÀ SMARTPHONE (MEDIA QUERIES)
+   ========================================================================== */
+@media (max-width: 640px) {
+  body {
+    padding: 10px;
+  }
 
-[data-theme="dark"] .event-badge.festivita {
-  background: rgba(245, 158, 11, 0.25);
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.3);
+  /* Header e Top Bar */
+  .top-bar h1 {
+    font-size: 1.3rem;
+  }
+
+  .btn-theme {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+
+  .legend {
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .legend-item {
+    font-size: 0.78rem;
+  }
+
+  /* Pulsanti d'azione (Scroll orizzontale o a griglia) */
+  .action-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .btn, #btnInstall {
+    width: 100%;
+    padding: 10px 8px;
+    font-size: 0.8rem;
+  }
+
+  /* Filtri e Statistiche */
+  .filter-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stats-results {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .stat-box {
+    padding: 8px;
+  }
+
+  /* Controlli Calendario */
+  .controls {
+    padding: 6px 8px;
+  }
+
+  .controls button {
+    padding: 8px 10px;
+    font-size: 1.1rem;
+  }
+
+  .month-selectors select {
+    font-size: 0.9rem;
+  }
+
+  /* Griglia Calendario per Smartphone */
+  .grid {
+    gap: 3px;
+  }
+
+  .day-header {
+    font-size: 0.65rem;
+    padding: 4px 0;
+  }
+
+  .day-cell {
+    min-height: 75px;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+  }
+
+  .cell-top {
+    font-size: 0.75rem;
+  }
+
+  .badge {
+    font-size: 0.65rem;
+    padding: 2px 3px;
+  }
+
+  .badge-changed {
+    font-size: 0.55rem;
+    padding: 1px 3px;
+  }
+
+  .event-badge {
+    font-size: 0.6rem;
+    padding: 2px 4px;
+  }
+
+  /* Moduli Sotto il Calendario */
+  .module-section {
+    padding: 16px;
+    margin-top: 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .module-section h3 {
+    font-size: 1rem;
+  }
+
+  .module-section form,
+  .module-form {
+    padding: 12px;
+  }
+
+  .form-row,
+  .form-grid {
+    grid-template-columns: 1fr; /* Una colonna singola per form su smartphone */
+    gap: 10px;
+  }
+
+  .module-section .btn-submit,
+  .module-form button[type="submit"] {
+    width: 100%;
+    align-self: stretch;
+    padding: 12px;
+  }
+
+  .spese-summary-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px 14px;
+  }
+
+  .spese-summary-card strong {
+    font-size: 1.1rem;
+  }
+
+  /* Modale Popup su Schermi Piccoli */
+  .modal-overlay {
+    padding: 12px;
+  }
+
+  .modal-content {
+    padding: 18px;
+    border-radius: var(--radius-md);
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+
+  .btn-delete {
+    margin-right: 0;
+  }
 }
