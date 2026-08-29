@@ -242,6 +242,52 @@
     </div>
   </section>
 
+  <!-- MODULO LISTA SPESA & TAGLIE VALERIO -->
+<div class="card" style="margin-bottom: 20px; background: var(--surface-bg, #f8fafc); padding: 15px; border-radius: 8px; border: 1px solid var(--surface-border);">
+  <h3>🛍️ Taglie & Lista Spesa Valerio</h3>
+
+  <!-- Sezione 1: Taglie Attuali -->
+  <div style="margin-bottom: 20px; background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid var(--surface-border);">
+    <h4 style="margin-top:0; margin-bottom: 10px; font-size: 0.95rem;">👟 Taglie Attuali</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+      <div>
+        <label style="font-size:0.75rem;">Scarpe:</label>
+        <input type="text" id="tagliaScarpe" class="form-control" style="width:100%;" placeholder="es. 28">
+      </div>
+      <div>
+        <label style="font-size:0.75rem;">Magliette / Felpe:</label>
+        <input type="text" id="tagliaMagliette" class="form-control" style="width:100%;" placeholder="es. 4-5 anni / 110cm">
+      </div>
+      <div>
+        <label style="font-size:0.75rem;">Pantaloni:</label>
+        <input type="text" id="tagliaPantaloni" class="form-control" style="width:100%;" placeholder="es. 110cm">
+      </div>
+      <div>
+        <label style="font-size:0.75rem;">Intimo / Altro:</label>
+        <input type="text" id="tagliaIntimo" class="form-control" style="width:100%;" placeholder="es. 4-5 anni">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="margin-top: 10px; width: 100%; font-size: 0.85rem;" onclick="saveTaglieValerio()">💾 Salva Taglie</button>
+  </div>
+
+  <!-- Sezione 2: Lista Spesa Condivisa -->
+  <div style="background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid var(--surface-border);">
+    <h4 style="margin-top:0; margin-bottom: 10px; font-size: 0.95rem;">🛒 Lista Cose da Comprare</h4>
+    
+    <!-- Form inserimento articolo -->
+    <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+      <input type="text" id="nuovoArticoloSpesa" class="form-control" style="flex: 2; min-width: 150px;" placeholder="Cosa serve? (es. Pannolini, Scarpe ginnastica)">
+      <input type="text" id="noteArticoloSpesa" class="form-control" style="flex: 1; min-width: 100px;" placeholder="Note (es. marca, misura)">
+      <button class="btn btn-primary" onclick="addArticoloSpesa()">➕ Aggiungi</button>
+    </div>
+
+    <!-- Elenco Prodotti -->
+    <div id="listaSpesaContainer">
+      <p style="color: var(--text-muted); font-size: 0.8rem;">Nessun articolo in lista.</p>
+    </div>
+  </div>
+</div>
+
   <!-- MODALE PER GESTIONE NOTE ED EVENTI -->
   <div id="noteModal" class="modal-overlay">
     <div class="modal-content">
