@@ -8,8 +8,7 @@ import { VacanzeManager } from "./modules/VacanzeManager.js";
 import { ExportManager } from "./modules/ExportManager.js";
 import { FestivitaManager } from './modules/FestivitaManager.js';
 import { SpesaTaglieManager } from './modules/SpesaTaglieManager.js';
-
-
+import { DocumentiManager } from './modules/DocumentiManager.js';
 
 
 // Inizializzazione Istanze Moduli
@@ -20,6 +19,7 @@ const saluteMgr = new SaluteManager();
 const vacanzeMgr = new VacanzeManager();
 const festivitaManager = new FestivitaManager();
 const spesaTaglieMgr = new SpesaTaglieManager();
+const documentiMgr = new DocumentiManager();
 
 let notes = {};
 let activeDateKeyForNote = null;
@@ -117,6 +117,116 @@ window.addEventListener('appinstalled', () => {
   const installBtn = document.getElementById('btnInstall');
   if (installBtn) installBtn.style.display = 'none';
 });
+
+// 3. Funzione di rendering per l'interfaccia documenti
+function renderDocumenti() {
+  const container = document.getElementById('listaDocumentiContainer');
+  if (!container) return;
+
+  const docs = documentiMgr.getData();
+  container.innerHTML = '';
+
+  if (docs.length === 0) {
+    container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; margin:0;">Nessun documento archiviato.</p>`;
+    return;
+  }
+
+  docs.forEach(doc => {
+    const isPdf = doc.fileType === 'application/pdf';
+    const isExpired = doc.dataScadenza && new Date(doc.dataScadenza) < new Date();
+
+    const div = document.createElement('div');
+    div.style.cssText = `display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px dashed var(--surface-border); font-size: 0.85rem; gap: 10px;`;
+
+    div.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+        <span style="font-size: 1.5rem;">${isPdf ? '📄' : '🖼️'}</span>
+        <div>
+          <strong>${doc.titolo}</strong> 
+          <span style="font-size: 0.75rem; background: var(--surface-border); padding: 2px 6px; border-radius: 4px; margin-left: 4px;">${doc.categoria}</span>
+          ${doc.dataScadenza ? `<br><small style="color: ${isExpired ? '#dc2626' : 'var(--text-muted)'}; font-weight: ${isExpired ? 'bold' : 'normal'};">${isExpired ? '⚠️ Scaduto il: ' : '📅 Scadenza: '}${doc.dataScadenza.split('-').reverse().join('/')}</small>` : ''}
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 8px;">
+        <a href="${doc.fileData}" download="${doc.fileName}" target="_blank" class="btn" style="padding: 4px 8px; font-size: 0.75rem; text-decoration: none; background: #e2e8f0; color: #1e293b; border-radius: 4px;">👁️ Apri / Scarica</a>
+        <button style="background:none; border:none; cursor:pointer;" onclick="deleteDocumentoValerio('${doc.id}')">🗑️</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// 4. Caricamento File (Con compressione per immagini e lettura diretta per PDF)
+window.uploadDocumentoValerio = async function() {
+  const titoloInput = document.getElementById('docTitolo');
+  const catInput = document.getElementById('docCategoria');
+  const scadenzaInput = document.getElementById('docScadenza');
+  const fileInput = document.getElementById('docFile');
+
+  const titolo = titoloInput?.value.trim();
+  const categoria = catInput?.value;
+  const dataScadenza = scadenzaInput?.value;
+  const file = fileInput?.files[0];
+
+  if (!titolo) {
+    alert("Inserisci un titolo per il documento!");
+    return;
+  }
+  if (!file) {
+    alert("Seleziona un file da caricare!");
+    return;
+  }
+
+  let fileBase64 = null;
+
+  try {
+    if (file.type.startsWith('image/')) {
+      // Usa la funzione compressImage già presente in app.js (o fallback a FileReader)
+      if (typeof compressImage === 'function') {
+        fileBase64 = await compressImage(file);
+      } else {
+        fileBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.readAsDataURL(file);
+        });
+      }
+    } else if (file.type === 'application/pdf') {
+      fileBase64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+    } else {
+      alert("Formato non supportato. Carica un'immagine o un file PDF.");
+      return;
+    }
+
+    documentiMgr.addDocumento(titolo, categoria, dataScadenza, fileBase64, file.type, file.name);
+
+    // Resetta form
+    if (titoloInput) titoloInput.value = '';
+    if (scadenzaInput) scadenzaInput.value = '';
+    if (fileInput) fileInput.value = '';
+
+    renderDocumenti();
+    if (typeof saveDataToFirestore === 'function') saveDataToFirestore();
+    alert("Documento caricato con successo!");
+
+  } catch (err) {
+    console.error("Errore caricamento documento:", err);
+    alert("Si è verificato un errore durante la lettura del file.");
+  }
+};
+
+window.deleteDocumentoValerio = function(id) {
+  if (confirm("Sei sicuro di voler eliminare questo documento?")) {
+    documentiMgr.deleteDocumento(id);
+    renderDocumenti();
+    if (typeof saveDataToFirestore === 'function') saveDataToFirestore();
+  }
+};
 
 // 3. Funzione di rendering da chiamare quando si aggiornano i dati
 function renderSpesaTaglie() {
@@ -282,6 +392,9 @@ onSnapshot(docRef, (docSnap) => {
 
     // Caricamento del modulo Spesa e Taglie
     spesaTaglieMgr.loadData(data.spesaTaglie || {});
+
+    // Caricamento del modulo Archivio Documenti Digitali
+    documentiMgr.loadData(data.documenti || []);
   } else {
     turniMgr.setData({}, {});
     notes = {};
@@ -293,9 +406,10 @@ onSnapshot(docRef, (docSnap) => {
     
     // Inizializzazione vuota se il documento non esiste
     spesaTaglieMgr.loadData({});
+    documentiMgr.loadData([]);
   }
 
-  // Aggiorna l'interfaccia (incluso renderSpesaTaglie)
+  // Aggiorna l'interfaccia (inclusi renderSpesaTaglie e renderDocumenti via render())
   render();
 });
 
@@ -310,8 +424,8 @@ async function saveDataToFirestore() {
       salute: saluteMgr.schede,
       vacanze: vacanzeMgr.vacanze,
       festivitaRules: festivitaManager.toJSON(),
-      // Aggiunto per il Modulo 3 (Spesa & Taglie)
-      spesaTaglie: spesaTaglieMgr.getData()
+      spesaTaglie: spesaTaglieMgr.getData(),
+      documenti: documentiMgr.getData() 
     });
   } catch (error) {
     console.error("Errore salvataggio Firestore:", error);
@@ -979,7 +1093,8 @@ function render() {
   renderVacanze();
   renderSalute();
   renderFestivitaSettings();
-  renderSpesaTaglie(); // Sincronizza e aggiorna l'interfaccia di Spesa & Taglie
+  renderSpesaTaglie(); 
+  renderDocumenti();
   window.calculateStats();
 }
 
