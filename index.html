@@ -156,6 +156,51 @@
     </div>
   </section>
 
+  <!-- MODULO ARCHIVIO DOCUMENTI DIGITALI (VAULT SAFE) -->
+<div class="card" style="margin-bottom: 20px; background: var(--surface-bg, #f8fafc); padding: 15px; border-radius: 8px; border: 1px solid var(--surface-border);">
+  <h3>🗂️ Archivio Documenti Digitali Valerio</h3>
+
+  <!-- Form Caricamento Nuovo Documento -->
+  <div style="background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid var(--surface-border); margin-bottom: 15px;">
+    <h4 style="margin-top:0; margin-bottom: 10px; font-size: 0.95rem;">➕ Carica Nuovo Documento</h4>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 10px;">
+      <div>
+        <label style="font-size:0.75rem;">Titolo Documento *:</label>
+        <input type="text" id="docTitolo" class="form-control" style="width:100%;" placeholder="es. Tessera Sanitaria">
+      </div>
+      <div>
+        <label style="font-size:0.75rem;">Categoria:</label>
+        <select id="docCategoria" class="form-control" style="width:100%;">
+          <option value="Identità / Fiscale">Identità / Fiscale</option>
+          <option value="Sanità / Vaccini">Sanità / Vaccini</option>
+          <option value="Scuola / Sport">Scuola / Sport</option>
+          <option value="Altro">Altro</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.75rem;">Data Scadenza (Opzionale):</label>
+        <input type="date" id="docScadenza" class="form-control" style="width:100%;">
+      </div>
+    </div>
+
+    <div style="margin-bottom: 10px;">
+      <label style="font-size:0.75rem;">Seleziona File (Foto o PDF) *:</label>
+      <input type="file" id="docFile" class="form-control" accept="image/*,application/pdf" capture="environment" style="width:100%;">
+    </div>
+
+    <button class="btn btn-primary" style="width:100%; font-size: 0.85rem;" onclick="uploadDocumentoValerio()">📤 Salva Documento</button>
+  </div>
+
+  <!-- Lista Documenti Archiviati -->
+  <div style="background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid var(--surface-border);">
+    <h4 style="margin-top:0; margin-bottom: 10px; font-size: 0.95rem;">📁 Documenti Archiviati</h4>
+    <div id="listaDocumentiContainer">
+      <p style="color: var(--text-muted); font-size: 0.8rem;">Nessun documento in archivio.</p>
+    </div>
+  </div>
+</div>
+
   <!-- MODULO GESTIONE FESTIVITÀ ALTERNATE -->
 <div class="module-section festivita-module" id="festivitaSection">
   <h3>🎄 Pianificazione Festività Alternate (Pluriannuale)</h3>
