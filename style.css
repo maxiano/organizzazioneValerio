@@ -1,13 +1,13 @@
 /* ==========================================================================
-   DESIGN SYSTEM & VARIABILI
+   DESIGN SYSTEM & VARIABILI (UPDATED)
    ========================================================================== */
 :root {
   /* Font Family */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 
   /* Palette Chiara (Light Theme) */
-  --bg-gradient: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
-  --surface-bg: #ffffff;
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  --surface-bg: rgba(255, 255, 255, 0.95);
   --surface-border: rgba(226, 232, 240, 0.8);
   --input-bg: #f8fafc;
   --input-border: #cbd5e1;
@@ -17,7 +17,7 @@
   /* Accent Colors */
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
-  --primary-light: #eff6ff;
+  --primary-light: rgba(37, 99, 235, 0.1);
 
   /* Colori Ruoli / Turni */
   --papa-color: #2563eb;
@@ -31,30 +31,41 @@
   --undef-color: #d97706;
   --undef-bg: #fef3c7;
 
-  /* Categorie Moduli (Spese, Salute, Logistica) */
+  /* Categorie Moduli (Spese, Salute, Logistica, Festività) */
   --spesa-color: #059669;
-  --spesa-bg: #d1fae5;
-  --salute-color: #dc2626;
-  --salute-bg: #fee2e2;
-  --logistica-color: #7c3aed;
-  --logistica-bg: #ede9fe;
+  --spesa-bg: rgba(5, 150, 105, 0.12);
+  --spesa-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
 
-  /* Modali & UI Elements */
-  --modal-backdrop: rgba(15, 23, 42, 0.55);
-  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-  --glow-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.25);
-  --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.25);
-  --radius-lg: 18px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
+  --salute-color: #e11d48;
+  --salute-bg: rgba(225, 29, 72, 0.12);
+  --salute-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+
+  --logistica-color: #7c3aed;
+  --logistica-bg: rgba(124, 58, 237, 0.12);
+  --logistica-gradient: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+
+  --festivita-color: #d97706;
+  --festivita-bg: rgba(217, 119, 6, 0.12);
+  --festivita-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+
+  /* Effetti & Shadow Moderne */
+  --modal-backdrop: rgba(15, 23, 42, 0.6);
+  --card-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05), 0 4px 6px -2px rgba(15, 23, 42, 0.02);
+  --card-shadow-hover: 0 20px 35px -10px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
+  --glow-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+  --focus-ring: 0 0 0 4px rgba(37, 99, 235, 0.15);
+  
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
 }
 
 /* Modalità Scura (Dark Theme) */
 [data-theme="dark"] {
-  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  --surface-bg: #1e293b;
+  --bg-gradient: linear-gradient(135deg, #090d16 0%, #111827 100%);
+  --surface-bg: rgba(17, 24, 39, 0.85);
   --surface-border: rgba(255, 255, 255, 0.08);
-  --input-bg: #0f172a;
+  --input-bg: rgba(15, 23, 42, 0.6);
   --input-border: #334155;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
@@ -74,14 +85,18 @@
   --spesa-color: #34d399;
   --spesa-bg: rgba(5, 150, 105, 0.25);
 
-  --salute-color: #f87171;
-  --salute-bg: rgba(220, 38, 38, 0.25);
+  --salute-color: #fb7185;
+  --salute-bg: rgba(225, 29, 72, 0.25);
 
   --logistica-color: #a78bfa;
   --logistica-bg: rgba(124, 58, 237, 0.25);
 
-  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-  --focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.3);
+  --festivita-color: #fbbf24;
+  --festivita-bg: rgba(245, 158, 11, 0.25);
+
+  --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
+  --card-shadow-hover: 0 20px 35px -5px rgba(0, 0, 0, 0.6);
+  --focus-ring: 0 0 0 4px rgba(96, 165, 250, 0.25);
 }
 
 /* ==========================================================================
@@ -101,7 +116,7 @@ body {
   color: var(--text-main);
   min-height: 100vh;
   padding: 16px;
-  max-width: 950px;
+  max-width: 980px;
   margin: 0 auto;
   transition: background 0.3s ease, color 0.3s ease;
 }
@@ -118,10 +133,10 @@ body {
 }
 
 .top-bar h1 {
-  font-size: 1.6rem;
+  font-size: 1.75rem;
   font-weight: 800;
-  letter-spacing: -0.025em;
-  background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--primary) 0%, #a855f7 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -130,23 +145,25 @@ body {
   background: var(--surface-bg);
   color: var(--text-main);
   border: 1px solid var(--surface-border);
-  padding: 8px 14px;
-  border-radius: 20px;
+  padding: 8px 16px;
+  border-radius: 30px;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   box-shadow: var(--card-shadow);
+  backdrop-filter: blur(10px);
   transition: all 0.2s ease;
 }
 
 .btn-theme:hover {
   transform: translateY(-2px);
+  border-color: var(--primary);
 }
 
 .subhead {
   color: var(--text-muted);
-  font-size: 0.88rem;
-  margin-bottom: 16px;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
   padding-left: 4px;
 }
 
@@ -156,10 +173,11 @@ body {
   flex-wrap: wrap;
   gap: 16px;
   background: var(--surface-bg);
-  padding: 10px 16px;
+  backdrop-filter: blur(12px);
+  padding: 12px 18px;
   border-radius: var(--radius-md);
   border: 1px solid var(--surface-border);
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   box-shadow: var(--card-shadow);
 }
 
@@ -172,9 +190,10 @@ body {
 }
 
 .dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
 }
 
 .dot.papa { background-color: var(--papa-color); }
@@ -188,7 +207,7 @@ body {
 .action-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
@@ -196,22 +215,24 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   background: var(--surface-bg);
+  backdrop-filter: blur(10px);
   color: var(--text-main);
   border: 1px solid var(--surface-border);
-  padding: 10px 14px;
+  padding: 10px 16px;
   border-radius: var(--radius-md);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
   box-shadow: var(--card-shadow);
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn:hover, #btnInstall:hover {
   transform: translateY(-2px);
   border-color: var(--primary);
+  box-shadow: var(--card-shadow-hover);
 }
 
 #btnInstall {
@@ -229,14 +250,21 @@ body {
   color: #ef4444;
 }
 
+.btn-reset:hover {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+
 /* Selettore Vista (Griglia / Lista) */
 .view-toggle {
   display: flex;
   background: var(--surface-bg);
+  backdrop-filter: blur(10px);
   padding: 4px;
   border-radius: var(--radius-md);
   border: 1px solid var(--surface-border);
   margin-bottom: 20px;
+  box-shadow: var(--card-shadow);
 }
 
 .btn-toggle {
@@ -245,8 +273,8 @@ body {
   border: none;
   color: var(--text-muted);
   padding: 10px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 700;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -263,17 +291,19 @@ body {
    ========================================================================== */
 .stats-card {
   background: var(--surface-bg);
-  padding: 18px;
+  backdrop-filter: blur(12px);
+  padding: 20px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--surface-border);
   box-shadow: var(--card-shadow);
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .stats-card h3 {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 12px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 14px;
+  letter-spacing: -0.01em;
 }
 
 .filter-group {
@@ -287,16 +317,18 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .filter-group input[type="date"] {
   background: var(--input-bg);
   border: 1px solid var(--input-border);
   color: var(--text-main);
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
   outline: none;
@@ -311,23 +343,24 @@ body {
 .stats-results {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 12px;
 }
 
 .stat-box {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px;
+  padding: 12px 10px;
   border-radius: var(--radius-md);
   text-align: center;
+  border: 1px solid transparent;
 }
 
-.stat-box span { font-size: 0.75rem; font-weight: 600; margin-bottom: 2px; }
-.stat-box strong { font-size: 1.1rem; font-weight: 800; }
+.stat-box span { font-size: 0.75rem; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; }
+.stat-box strong { font-size: 1.2rem; font-weight: 800; }
 
-.papa-box { background: var(--papa-bg); color: var(--papa-color); }
-.mamma-box { background: var(--mamma-bg); color: var(--mamma-color); }
+.papa-box { background: var(--papa-bg); color: var(--papa-color); border-color: var(--papa-border); }
+.mamma-box { background: var(--mamma-bg); color: var(--mamma-color); border-color: var(--mamma-border); }
 .undefined-box { background: var(--undef-bg); color: var(--undef-color); }
 
 /* ==========================================================================
@@ -338,10 +371,11 @@ body {
   justify-content: space-between;
   align-items: center;
   background: var(--surface-bg);
-  padding: 8px 12px;
+  backdrop-filter: blur(12px);
+  padding: 10px 16px;
   border-radius: var(--radius-md);
   border: 1px solid var(--surface-border);
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   box-shadow: var(--card-shadow);
 }
 
@@ -349,11 +383,12 @@ body {
   background: transparent;
   border: none;
   color: var(--primary);
-  font-weight: 700;
-  font-size: 1rem;
-  padding: 6px 12px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  padding: 6px 14px;
   cursor: pointer;
   border-radius: var(--radius-sm);
+  transition: background 0.2s ease;
 }
 
 .controls button:hover {
@@ -364,8 +399,8 @@ body {
   background: transparent;
   border: none;
   color: var(--text-main);
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 800;
   padding: 4px;
   cursor: pointer;
   outline: none;
@@ -377,35 +412,38 @@ body {
 .grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 8px;
 }
 
 .day-header {
   text-align: center;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-muted);
-  padding: 6px 0;
+  padding: 8px 0;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .day-cell {
   background: var(--surface-bg);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--surface-border);
   border-radius: var(--radius-md);
-  min-height: 95px;
-  padding: 6px;
+  min-height: 100px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--card-shadow);
 }
 
 .day-cell:hover {
-  transform: scale(1.02);
+  transform: translateY(-2px) scale(1.01);
   border-color: var(--primary);
+  box-shadow: var(--card-shadow-hover);
 }
 
 .day-cell.other-month {
@@ -419,16 +457,16 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: 700;
-  font-size: 0.85rem;
+  font-weight: 800;
+  font-size: 0.9rem;
 }
 
 .btn-note-trigger {
   background: transparent;
   border: none;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   cursor: pointer;
-  opacity: 0.5;
+  opacity: 0.4;
   transition: opacity 0.2s ease;
 }
 
@@ -441,12 +479,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 4px 6px;
+  padding: 5px 6px;
   border-radius: var(--radius-sm);
   font-size: 0.72rem;
   font-weight: 700;
   text-align: center;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .badge.papa {
@@ -461,50 +499,36 @@ body {
   border: 1px solid var(--mamma-border);
 }
 
-/* Targhetta Cambio Turno evidenziata */
 .badge-changed {
   font-size: 0.60rem;
   font-weight: 800;
   text-transform: uppercase;
   background: #ef4444;
   color: #ffffff;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
-  margin-top: 3px;
+  margin-top: 4px;
   letter-spacing: 0.03em;
 }
 
-/* Eventi / Note Badge (Generico, Salute, Spesa, Logistica) */
+/* Eventi / Note Badge */
 .event-badge {
   font-size: 0.68rem;
-  padding: 3px 5px;
-  border-radius: 4px;
+  padding: 3px 6px;
+  border-radius: 6px;
   background: var(--primary-light);
   color: var(--primary);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .event-badge.spesa { background: var(--spesa-bg); color: var(--spesa-color); }
 .event-badge.salute { background: var(--salute-bg); color: var(--salute-color); }
 .event-badge.logistica { background: var(--logistica-bg); color: var(--logistica-color); }
-
-/* Tematizzazione Modulo Festività */
-.event-badge.festivita {
-  background: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
-  font-weight: 700;
-}
-
-[data-theme="dark"] .event-badge.festivita {
-  background: rgba(245, 158, 11, 0.25);
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.3);
-}
+.event-badge.festivita { background: var(--festivita-bg); color: var(--festivita-color); font-weight: 700; }
 
 /* ==========================================================================
    VISTA LISTA / AGENDA
@@ -512,7 +536,7 @@ body {
 .list-view {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .list-item {
@@ -520,11 +544,18 @@ body {
   justify-content: space-between;
   align-items: center;
   background: var(--surface-bg);
-  padding: 12px 16px;
+  backdrop-filter: blur(10px);
+  padding: 14px 18px;
   border-radius: var(--radius-md);
   border: 1px solid var(--surface-border);
   box-shadow: var(--card-shadow);
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.list-item:hover {
+  transform: translateX(4px);
+  border-color: var(--primary);
 }
 
 .list-item-left {
@@ -534,7 +565,7 @@ body {
 }
 
 .list-item-date {
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.95rem;
 }
 
@@ -545,64 +576,77 @@ body {
 }
 
 /* ==========================================================================
-   SEZIONE COMPONENTI MODULARI & FORM SOTTO IL CALENDARIO
+   SEZIONE COMPONENTI MODULARI & FORM (SUPER MODERN & ACCATTIVANTE)
    ========================================================================== */
 .module-section {
   background: var(--surface-bg);
-  padding: 24px;
+  backdrop-filter: blur(16px);
+  padding: 26px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--surface-border);
   box-shadow: var(--card-shadow);
-  margin-top: 24px;
+  margin-top: 28px;
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.module-section:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-3px);
+}
+
+/* Strisce laterali e pillole identificative */
 .module-section::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
-  width: 4px;
+  width: 5px;
   height: 100%;
   background: var(--primary);
   border-top-left-radius: var(--radius-lg);
   border-bottom-left-radius: var(--radius-lg);
 }
 
-.module-section.spese-module::before { background: var(--spesa-color); }
-.module-section.salute-module::before { background: var(--salute-color); }
-.module-section.logistica-module::before { background: var(--logistica-color); }
-.module-section.festivita-module::before { background: #f59e0b; }
+.module-section.spese-module::before { background: var(--spesa-gradient); }
+.module-section.salute-module::before { background: var(--salute-gradient); }
+.module-section.logistica-module::before { background: var(--logistica-gradient); }
+.module-section.festivita-module::before { background: var(--festivita-gradient); }
 
 .module-section h3 {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 800;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
   gap: 10px;
   color: var(--text-main);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
+/* Stylized Form Container */
 .module-section form,
 .module-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  background: var(--bg-gradient);
-  padding: 18px;
+  gap: 18px;
+  background: rgba(255, 255, 255, 0.4);
+  padding: 20px;
   border-radius: var(--radius-md);
   border: 1px solid var(--surface-border);
+}
+
+[data-theme="dark"] .module-section form,
+[data-theme="dark"] .module-form {
+  background: rgba(15, 23, 42, 0.4);
 }
 
 .form-row,
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
 }
 
 .form-group {
@@ -613,13 +657,14 @@ body {
 
 .form-group label,
 .module-section label {
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 800;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
+/* Field Controls (Inputs, Selects, Textareas) */
 .module-section input[type="text"],
 .module-section input[type="number"],
 .module-section input[type="date"],
@@ -631,16 +676,16 @@ body {
 .module-form select,
 .module-form textarea {
   width: 100%;
-  background: var(--surface-bg);
-  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  border: 1.5px solid var(--input-border);
   color: var(--text-main);
-  padding: 11px 14px;
+  padding: 12px 16px;
   border-radius: var(--radius-sm);
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 500;
   outline: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .module-section input:hover,
@@ -658,29 +703,30 @@ body {
   transform: translateY(-1px);
 }
 
-/* Resumè Card Spese */
+/* Modulo Spese: Resume Card Premium */
 .spese-summary-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, var(--spesa-bg) 0%, var(--surface-bg) 100%);
-  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.05) 100%);
+  padding: 18px 24px;
   border-radius: var(--radius-md);
-  margin-bottom: 18px;
-  border: 1px solid rgba(5, 150, 105, 0.2);
-  box-shadow: var(--card-shadow);
+  margin-bottom: 20px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  box-shadow: 0 4px 15px rgba(5, 150, 105, 0.08);
 }
 
 .spese-summary-card span {
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-weight: 700;
+  font-size: 0.95rem;
   color: var(--text-main);
 }
 
 .spese-summary-card strong {
   color: var(--spesa-color);
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 /* Bottoni nei Moduli */
@@ -693,13 +739,13 @@ body {
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
   color: #ffffff;
   border: none;
-  padding: 12px 20px;
+  padding: 12px 24px;
   border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow: var(--glow-shadow);
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
   align-self: flex-end;
   margin-top: 4px;
 }
@@ -707,7 +753,12 @@ body {
 .module-section .btn-submit:hover,
 .module-form button[type="submit"]:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.4);
+}
+
+.module-section .btn-submit:active,
+.module-form button[type="submit"]:active {
+  transform: translateY(0);
 }
 
 /* ==========================================================================
@@ -717,14 +768,15 @@ body {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-sm);
 }
 
 .badge-modalita {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 3px 10px;
+  border-radius: 20px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
   white-space: nowrap;
 }
@@ -763,8 +815,8 @@ body {
   right: 0;
   bottom: 0;
   background: var(--modal-backdrop);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -782,35 +834,36 @@ body {
 
 .modal-content {
   background: var(--surface-bg);
-  padding: 26px;
+  backdrop-filter: blur(20px);
+  padding: 28px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--surface-border);
   width: 100%;
-  max-width: 450px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: 460px;
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  transform: scale(0.95);
+  gap: 18px;
+  transform: scale(0.92) translateY(10px);
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   max-height: 90vh;
   overflow-y: auto;
 }
 
 .modal-overlay.active .modal-content {
-  transform: scale(1);
+  transform: scale(1) translateY(0);
 }
 
 .modal-content h3 {
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--text-main);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .modal-content label {
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 800;
   color: var(--text-muted);
   display: flex;
   flex-direction: column;
@@ -824,11 +877,11 @@ body {
 .modal-content select,
 .modal-content textarea {
   background: var(--input-bg);
-  border: 1px solid var(--input-border);
+  border: 1.5px solid var(--input-border);
   color: var(--text-main);
-  padding: 11px 14px;
+  padding: 12px 14px;
   border-radius: var(--radius-sm);
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   outline: none;
   transition: all 0.2s ease;
 }
@@ -849,7 +902,7 @@ body {
   margin-top: 4px;
   cursor: pointer;
   color: var(--text-main);
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 600;
   text-transform: none !important;
 }
@@ -859,37 +912,37 @@ body {
   height: 20px;
   accent-color: var(--primary);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 10px;
-  padding-top: 10px;
+  margin-top: 12px;
+  padding-top: 14px;
   border-top: 1px solid var(--surface-border);
 }
 
 .modal-actions button {
-  padding: 10px 18px;
+  padding: 11px 20px;
   border-radius: var(--radius-md);
   border: 1px solid var(--surface-border);
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-primary {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
   color: #ffffff;
   border: none !important;
   box-shadow: var(--glow-shadow);
 }
 
 .btn-primary:hover {
-  background: var(--primary-hover);
+  transform: translateY(-1px);
 }
 
 .btn-delete {
@@ -905,37 +958,37 @@ body {
 }
 
 /* ==========================================================================
-   OTTIMIZZAZIONE MOBILE & ADATTABILITÀ SMARTPHONE (MEDIA QUERIES)
+   OTTIMIZZAZIONE SMARTPHONE / MOBILE MEDIA QUERIES
    ========================================================================== */
 @media (max-width: 640px) {
   body {
     padding: 10px;
   }
 
-  /* Header e Top Bar */
+  /* Header */
   .top-bar h1 {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
   }
 
   .btn-theme {
-    padding: 6px 10px;
-    font-size: 0.8rem;
+    padding: 6px 12px;
+    font-size: 0.78rem;
   }
 
   .legend {
     gap: 10px;
-    padding: 8px 12px;
+    padding: 10px 14px;
   }
 
   .legend-item {
     font-size: 0.78rem;
   }
 
-  /* Pulsanti d'azione (Scroll orizzontale o a griglia) */
+  /* Pulsanti d'azione Griglia a 2 Colonne */
   .action-buttons {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
+    gap: 8px;
   }
 
   .btn, #btnInstall {
@@ -947,35 +1000,31 @@ body {
   /* Filtri e Statistiche */
   .filter-group {
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .stats-results {
     grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .stat-box {
-    padding: 8px;
+    gap: 8px;
   }
 
   /* Controlli Calendario */
   .controls {
-    padding: 6px 8px;
+    padding: 8px;
   }
 
   .controls button {
-    padding: 8px 10px;
+    padding: 6px 10px;
     font-size: 1.1rem;
   }
 
   .month-selectors select {
-    font-size: 0.9rem;
+    font-size: 0.92rem;
   }
 
-  /* Griglia Calendario per Smartphone */
+  /* Griglia Calendario per Touch Display */
   .grid {
-    gap: 3px;
+    gap: 4px;
   }
 
   .day-header {
@@ -995,12 +1044,12 @@ body {
 
   .badge {
     font-size: 0.65rem;
-    padding: 2px 3px;
+    padding: 3px;
   }
 
   .badge-changed {
     font-size: 0.55rem;
-    padding: 1px 3px;
+    padding: 1px 4px;
   }
 
   .event-badge {
@@ -1008,26 +1057,27 @@ body {
     padding: 2px 4px;
   }
 
-  /* Moduli Sotto il Calendario */
+  /* Moduli Sotto il Calendario (Form a Colonna Singola) */
   .module-section {
-    padding: 16px;
-    margin-top: 16px;
+    padding: 18px;
+    margin-top: 18px;
     border-radius: var(--radius-md);
   }
 
   .module-section h3 {
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
 
   .module-section form,
   .module-form {
-    padding: 12px;
+    padding: 14px;
+    gap: 14px;
   }
 
   .form-row,
   .form-grid {
-    grid-template-columns: 1fr; /* Una colonna singola per form su smartphone */
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .module-section .btn-submit,
@@ -1041,20 +1091,20 @@ body {
     flex-direction: column;
     align-items: flex-start;
     gap: 6px;
-    padding: 12px 14px;
+    padding: 14px;
   }
 
   .spese-summary-card strong {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
   }
 
-  /* Modale Popup su Schermi Piccoli */
+  /* Modale Popup */
   .modal-overlay {
     padding: 12px;
   }
 
   .modal-content {
-    padding: 18px;
+    padding: 20px;
     border-radius: var(--radius-md);
   }
 
