@@ -856,19 +856,18 @@ window.closeNoteModal = function() {
 // -------------------------------------------------------------
 // SPESE
 // -------------------------------------------------------------
-// -------------------------------------------------------------
-// SPESE
-// -------------------------------------------------------------
+
 window.openSpesaModal = function() {
   const modal = document.getElementById('spesaModal');
   if (!modal) return;
 
+  // Reset dei campi di input
   document.getElementById('spesaDesc').value = '';
   document.getElementById('spesaImporto').value = '';
   document.getElementById('spesaData').value = new Date().toISOString().split('T')[0];
   document.getElementById('spesaRicevutaInput').value = '';
   
-  // Reset selettore modalità
+  // Reset selettori di opzione
   const modalitaSelect = document.getElementById('spesaModalita');
   if (modalitaSelect) modalitaSelect.value = 'intero';
 
@@ -914,8 +913,6 @@ window.saveSpesa = async function() {
   const categoria = document.getElementById('spesaCategoria').value;
   const data = document.getElementById('spesaData').value;
   const fileInput = document.getElementById('spesaRicevutaInput');
-  
-  // Recupero della nuova modalità selezionata
   const modalita = document.getElementById('spesaModalita')?.value || 'intero';
 
   if (!desc || !importo || isNaN(importo) || parseFloat(importo) <= 0) {
@@ -933,16 +930,19 @@ window.saveSpesa = async function() {
     }
   }
 
-  // Chiamata con il parametro modalita
   speseMgr.addSpesa(desc, importo, pagatoDa, categoria, ricevutaBase64, data, modalita);
   await saveDataToFirestore();
+  
+  // Aggiorna subito l'interfaccia prima di chiudere la modale
+  renderSpeseSummary(); 
   window.closeSpesaModal();
 };
 
-window.deleteSpesa = function(id) {
+window.deleteSpesa = async function(id) {
   if (confirm("Sei sicuro di voler eliminare questa spesa?")) {
     speseMgr.deleteSpesa(id);
-    saveDataToFirestore();
+    await saveDataToFirestore();
+    renderSpeseSummary(); // <-- AGGIUNTO: Aggiorna la tabella e il saldo dopo l'eliminazione
   }
 };
 
@@ -991,7 +991,6 @@ function renderSpeseSummary() {
     const pagatoStr = spesa.pagatoDa === 'papa' ? 'Papà' : 'Mamma';
     const badgeColor = spesa.pagatoDa === 'papa' ? 'var(--papa-color, #2563eb)' : 'var(--mamma-color, #ec4899)';
 
-    // Formatting badge per la modalità
     const modalitaStr = spesa.modalita === 'quota_propria'
       ? `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">50% Quota</span>`
       : `<span style="background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">100% Intero</span>`;
