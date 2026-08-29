@@ -275,9 +275,13 @@ onSnapshot(docRef, (docSnap) => {
     logisticaMgr.setPassaggi(data.passaggi || {});
     saluteMgr.setSchede(data.salute || {});
     vacanzeMgr.setVacanze(data.vacanze || []);
+    
     if (data.festivitaRules) {
       festivitaManager.setCustomRules(data.festivitaRules);
     }
+
+    // Caricamento del modulo Spesa e Taglie
+    spesaTaglieMgr.loadData(data.spesaTaglie || {});
   } else {
     turniMgr.setData({}, {});
     notes = {};
@@ -286,7 +290,12 @@ onSnapshot(docRef, (docSnap) => {
     saluteMgr.setSchede({});
     vacanzeMgr.setVacanze([]);
     festivitaManager.setCustomRules({});
+    
+    // Inizializzazione vuota se il documento non esiste
+    spesaTaglieMgr.loadData({});
   }
+
+  // Aggiorna l'interfaccia (incluso renderSpesaTaglie)
   render();
 });
 
@@ -300,7 +309,9 @@ async function saveDataToFirestore() {
       passaggi: logisticaMgr.passaggi,
       salute: saluteMgr.schede,
       vacanze: vacanzeMgr.vacanze,
-      festivitaRules: festivitaManager.toJSON()
+      festivitaRules: festivitaManager.toJSON(),
+      // Aggiunto per il Modulo 3 (Spesa & Taglie)
+      spesaTaglie: spesaTaglieMgr.getData()
     });
   } catch (error) {
     console.error("Errore salvataggio Firestore:", error);
@@ -968,6 +979,7 @@ function render() {
   renderVacanze();
   renderSalute();
   renderFestivitaSettings();
+  renderSpesaTaglie(); // Sincronizza e aggiorna l'interfaccia di Spesa & Taglie
   window.calculateStats();
 }
 
